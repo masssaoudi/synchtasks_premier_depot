@@ -1,0 +1,75 @@
+ Architecture globale adaptée à Vue.js + FastAPI + MongoDB
+🧱 1. Schéma MongoDB (aidant_relations collection)
+# backend/models/aidant_relation.py
+from pydantic import BaseModel, EmailStr
+from typing import Optional, List
+from datetime import datetime
+
+class AidantRelation(BaseModel):
+    id: Optional[str]
+    aide_id: str  # l'utilisateur aidé
+    aidant_id: str  # l'utilisateur qui aide
+    permissions: dict  # ex: {"can_edit": True, "can_alert": True}
+    status: str = "pending"  # pending | accepted | revoked
+    created_at: datetime = datetime.utcnow()
+🚀 2. Endpoints FastAPI
+🔹 Créer une relation (invitation d’un aidant)
+@router.post("/aidant/invite")
+async def invite_aidant(aide_email: EmailStr, aidant_email: EmailStr):
+    # 1. Vérifier que les deux utilisateurs existent
+    # 2. Créer la relation dans aidant_relations
+    # 3. Statut = "pending"
+🔹 Accepter une invitation
+@router.post("/aidant/accept")
+async def accept_invitation(relation_id: str):
+    # Update status → "accepted"
+🔹 Récupérer les tâches d’un aidé
+@router.get("/aidant/{aide_id}/tasks")
+async def get_aided_tasks(aide_id: str, current_user: User):
+    # Vérifier que current_user est bien aidant de aide_id
+    # Renvoyer les tâches visibles
+🔹 Ajouter une tâche pour l’aidé
+@router.post("/aidant/{aide_id}/add-task")
+async def add_task_to_aide(aide_id: str, task: TaskIn):
+    # Ajouter dans la collection des tâches de l’aidé
+🎨 Frontend Vue.js
+📋 Store Vue (Pinia ou Vuex)
+state: () => ({
+  aidantRelations: [],
+  currentAideTasks: [],
+  alerts: [],
+})
+🔄 Récupérer les relations
+async fetchAidantRelations() {
+  const res = await axios.get('/api/aidant/me');
+  this.aidantRelations = res.data;
+}
+📺 Interface : Dashboard Aidant
+Liste déroulante : choisir un aidé
+Affichage :
+tâches urgentes en rouge
+bouton "Ajouter tâche"
+bouton "Envoyer rappel"
+Carte "état du jour" :
+Dernière activité
+% de tâches complétées
+Alerte si bouton "je suis perdu" activé
+🔔 Notifications en temps réel (WebSocket ou Pusher.js)
+Backend FastAPI (simplifié) :
+@app.websocket("/ws/aidant-alerts/{aidant_id}")
+async def aidant_alerts(websocket: WebSocket, aidant_id: str):
+    await websocket.accept()
+    while True:
+        alert = await get_alert_for_aidant(aidant_id)
+        await websocket.send_json(alert)
+Vue.js côté aidant :
+const socket = new WebSocket(`ws://localhost:8000/ws/aidant-alerts/${aidantId}`);
+socket.onmessage = (event) => {
+  const alert = JSON.parse(event.data);
+  store.alerts.push(alert);
+  notifyUser(alert.message);
+};
+🛡️ Sécurité et gestion d’accès
+⚠️ Tous les endpoints /aidant/... vérifient bien que current_user.id == aidant_id d'une relation acceptée.
+🔐 Les tâches marquées private: true ne sont pas accessibles à l’aidant.
+🧠 Logs d’accès aux tâches pour suivi.
