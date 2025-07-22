@@ -353,3 +353,15 @@ python -c "import requests; print(requests.post('http://localhost:8000/api/ia/ch
 7. Tests, accessibilité, validation UX
 
 --- 
+
+---
+
+## 🐳 22/07/2025 - Pause : Dockerisation complète
+- Suppression et nettoyage de tous les anciens fichiers Docker
+- Création et test des nouveaux Dockerfile (backend, frontend) et docker-compose.yml
+- Build et lancement des services validés
+- .gitignore, README.md, DOCKER_CHECKLIST.md et docker_cheklist à jour
+- Sauvegarde du projet sur GitHub (synchtasks_premier_depot)
+- Prêt à reprendre sur une base stable pour la prochaine session (ajout de fonctionnalités, tests, etc.)
+
+--- 
