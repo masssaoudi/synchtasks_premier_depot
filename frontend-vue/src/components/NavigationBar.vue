@@ -17,8 +17,8 @@
         </button>
         
         <button @click="goHome" class="nav-btn nav-btn-primary">
-          <span class="btn-icon">🏠</span>
-          <span class="btn-text">Accueil</span>
+          <span class="btn-icon">📊</span>
+          <span class="btn-text">Tableau de bord</span>
         </button>
       </div>
 
@@ -26,6 +26,10 @@
       <div class="nav-user" v-if="authStore.isAuthenticated">
         <div class="user-info">
           <span class="user-name">{{ authStore.currentUser?.username }}</span>
+          <span class="ws-badge" :class="{ connected: websocketConnected, disconnected: !websocketConnected }">
+            <span class="ws-dot"></span>
+            <span class="ws-text">WebSocket {{ websocketConnected ? 'actif' : 'déconnecté' }}</span>
+          </span>
         </div>
         <button @click="logout" class="nav-btn nav-btn-logout">
           <span class="btn-icon">🚪</span>
@@ -40,12 +44,14 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { useTasksStore } from '../stores/tasks'
 
 export default {
   name: 'NavigationBar',
   setup() {
     const router = useRouter()
     const authStore = useAuthStore()
+    const tasksStore = useTasksStore()
 
     const showNavigation = computed(() => {
       // Ne pas afficher sur la page de login
@@ -64,9 +70,9 @@ export default {
 
     const goHome = () => {
       if (authStore.isAuthenticated) {
-        router.push('/dashboard')
+        router.push('/welcome')
       } else {
-        router.push('/login')
+        router.push('/')
       }
     }
 
@@ -75,13 +81,22 @@ export default {
       router.push('/login')
     }
 
+    const goPersonneAidant = () => {
+      router.push('/personne-aidant')
+    }
+
+    // Badge WebSocket actif
+    const websocketConnected = computed(() => tasksStore.websocketConnected)
+
     return {
       authStore,
       showNavigation,
       canGoBack,
       goBack,
       goHome,
-      logout
+      logout,
+      websocketConnected,
+      goPersonneAidant
     }
   }
 }
@@ -208,6 +223,9 @@ export default {
 .user-info {
   color: white;
   font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .user-name {
@@ -215,6 +233,52 @@ export default {
   padding: 0.25rem 0.75rem;
   border-radius: 20px;
   font-size: 0.9rem;
+}
+
+.ws-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  margin-left: 0.7em;
+  padding: 0.18em 0.7em 0.18em 0.4em;
+  border-radius: 16px;
+  font-size: 0.85em;
+  font-weight: 600;
+  background: rgba(255,255,255,0.18);
+  color: #fff;
+  border: 1.5px solid #bbb;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  transition: background 0.2s, color 0.2s, border 0.2s;
+}
+.ws-badge.connected {
+  background: rgba(76, 175, 80, 0.18);
+  color: #4CAF50;
+  border-color: #4CAF50;
+}
+.ws-badge.disconnected {
+  background: rgba(180, 180, 180, 0.18);
+  color: #aaa;
+  border-color: #aaa;
+}
+.ws-dot {
+  width: 0.7em;
+  height: 0.7em;
+  border-radius: 50%;
+  background: #aaa;
+  display: inline-block;
+  margin-right: 0.3em;
+  box-shadow: 0 0 4px #fff2;
+  transition: background 0.2s;
+}
+.ws-badge.connected .ws-dot {
+  background: #4CAF50;
+}
+.ws-badge.disconnected .ws-dot {
+  background: #aaa;
+}
+.ws-text {
+  font-size: 0.95em;
+  font-weight: 500;
 }
 
 /* Responsive */
@@ -237,6 +301,10 @@ export default {
   
   .nav-buttons {
     gap: 0.25rem;
+  }
+  .ws-badge {
+    font-size: 0.7em;
+    padding: 0.12em 0.5em 0.12em 0.3em;
   }
 }
 

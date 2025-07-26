@@ -7,36 +7,59 @@
     <main :class="['main-content', { 'with-nav': showNav }]">
       <router-view />
     </main>
+    
+    <!-- Système de notifications temps réel -->
+    <Toast />
   </div>
 </template>
 
 <script>
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from './stores/auth'
+import { useTasksStore } from './stores/tasks'
 import NavigationBar from './components/NavigationBar.vue'
+import Toast from './components/Toast.vue'
 
 export default {
   name: 'App',
   components: {
-    NavigationBar
+    NavigationBar,
+    Toast
   },
   setup() {
     const route = useRoute()
     const router = useRouter()
     const authStore = useAuthStore()
+    const tasksStore = useTasksStore()
     
     const showNav = computed(() => {
       return route.path !== '/login'
     })
     
+    let cleanupWebSocket = null
+    
     // Vérifier l'authentification au chargement
     onMounted(async () => {
       await authStore.initAuth()
       
-      // Si pas authentifié et pas sur la page de login, rediriger vers login
-      if (!authStore.isAuthenticated && route.path !== '/login') {
+      // Si pas authentifié et pas sur la page de login ou d'accueil, rediriger vers login
+      if (!authStore.isAuthenticated && route.path !== '/login' && route.path !== '/') {
         router.push('/login')
+      }
+      
+      // Initialiser WebSocket si authentifié
+      if (authStore.isAuthenticated && authStore.currentUser) {
+        const userId = authStore.currentUser._id || authStore.currentUser.id
+        console.log('🔌 Initialisation WebSocket pour:', userId)
+        cleanupWebSocket = tasksStore.initWebSocket(userId)
+      }
+    })
+    
+    // Nettoyer WebSocket à la déconnexion
+    onUnmounted(() => {
+      if (cleanupWebSocket) {
+        cleanupWebSocket()
       }
     })
     

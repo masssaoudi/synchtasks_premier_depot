@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, Query
 from pydantic import BaseModel
 from typing import List, Optional
 import os
@@ -44,6 +44,29 @@ class TaskHistoryRequest(BaseModel):
 
 class TaskHistoryResponse(BaseModel):
     """Réponse d'historique intelligent"""
+    type: str
+    summary: str
+    insights: List[str]
+    recommendations: List[str]
+    productivity_score: float
+    completion_rate: float
+    task_distribution: dict
+
+class KanbanStateResponse(BaseModel):
+    """Réponse pour l'état Kanban"""
+    type: str
+    kanban: dict
+    summary: str
+    insights: List[str]
+    recommendations: List[str]
+    productivity_score: float
+    completion_rate: float
+    task_distribution: dict
+
+class JournalResponse(BaseModel):
+    """Réponse pour le journal d'activité"""
+    type: str
+    events: List[dict]
     summary: str
     insights: List[str]
     recommendations: List[str]
@@ -189,37 +212,60 @@ async def ia_health_check():
         "message": "IA SyncTasks opérationnelle"
     } 
 
-@router.get("/history", response_model=TaskHistoryResponse)
-async def get_history_get(
+@router.get("/history")
+async def get_task_history(
+    mode: str = Query('insight', enum=["insight", "etat", "journal"]),
     current_user: UserInDB = Depends(get_current_user)
 ):
-    """Récupérer l'historique intelligent des tâches (GET)"""
-    try:
-        # Récupérer toutes les tâches de l'utilisateur
-        tasks = await task_service.get_tasks_by_user(current_user.id)
-        
-        if not tasks:
-            return TaskHistoryResponse(
-                summary="Aucune tâche trouvée pour le moment.",
-                insights=["Commencez par créer votre première tâche"],
-                recommendations=["Ajoutez une tâche simple pour commencer"],
-                productivity_score=0.0,
-                completion_rate=0.0,
-                task_distribution={}
-            )
-        
-        # Analyser avec l'IA si disponible
-        if GEMINI_API_KEY and genai:
-            return await analyze_task_history_with_ai(tasks, current_user)
-        else:
-            return generate_basic_analysis(tasks)
-            
-    except Exception as e:
-        print(f"Erreur lors de la récupération de l'historique: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erreur lors de la récupération de l'historique"
+    """Retourne l'analyse IA, l'état Kanban ou le journal d'activité selon le mode"""
+    tasks = await task_service.get_user_tasks(current_user.id)
+    if mode == "etat":
+        kanban = {
+            "todo": [t.model_dump() for t in tasks if t.status == "todo"],
+            "progress": [t.model_dump() for t in tasks if t.status == "progress"],
+            "completed": [t.model_dump() for t in tasks if t.status == "completed"]
+        }
+        # Générer une analyse basique pour remplir les champs requis
+        basic = generate_basic_analysis(tasks)
+        return KanbanStateResponse(
+            type="etat",
+            kanban=kanban,
+            summary=basic.summary,
+            insights=basic.insights,
+            recommendations=basic.recommendations,
+            productivity_score=basic.productivity_score,
+            completion_rate=basic.completion_rate,
+            task_distribution=basic.task_distribution
         )
+    elif mode == "journal":
+        events = []
+        for t in tasks:
+            events.append({
+                "date": t.created_at.isoformat() if t.created_at else None,
+                "action": "créée",
+                "task": t.title
+            })
+            if t.completed and t.completed_at:
+                events.append({
+                    "date": t.completed_at.isoformat(),
+                    "action": "terminée",
+                    "task": t.title
+                })
+        events = sorted(events, key=lambda e: e["date"], reverse=True)
+        # Générer une analyse basique pour remplir les champs requis
+        basic = generate_basic_analysis(tasks)
+        return JournalResponse(
+            type="journal",
+            events=events,
+            summary=basic.summary,
+            insights=basic.insights,
+            recommendations=basic.recommendations,
+            productivity_score=basic.productivity_score,
+            completion_rate=basic.completion_rate,
+            task_distribution=basic.task_distribution
+        )
+    else:
+        return generate_basic_analysis(tasks)
 
 @router.post("/history", response_model=TaskHistoryResponse)
 async def get_intelligent_history(
@@ -337,6 +383,7 @@ async def analyze_task_history_with_ai(tasks: List, user: UserInDB) -> TaskHisto
         task_distribution = calculate_task_distribution(tasks)
         
         return TaskHistoryResponse(
+            type="insight", # Force le type pour la réponse
             summary=summary,
             insights=insights,
             recommendations=recommendations,
@@ -350,31 +397,79 @@ async def analyze_task_history_with_ai(tasks: List, user: UserInDB) -> TaskHisto
         return generate_basic_analysis(tasks)
 
 def generate_basic_analysis(tasks: List) -> TaskHistoryResponse:
-    """Générer une analyse basique sans IA"""
+    """Générer une analyse avancée sans IA (insights pro)"""
+    from collections import Counter
+    from datetime import datetime, timedelta
+
     total_tasks = len(tasks)
-    completed_tasks = len([t for t in tasks if t.status == "completed"])
-    completion_rate = (completed_tasks / total_tasks * 100) if total_tasks > 0 else 0
-    
+    completed_tasks = [t for t in tasks if t.status == "completed"]
+    num_completed = len(completed_tasks)
+    now = datetime.utcnow()
+
+    # Tâches créées et terminées cette semaine
+    start_week = now - timedelta(days=now.weekday())
+    tasks_this_week = [t for t in tasks if t.created_at and t.created_at >= start_week]
+    completed_this_week = [t for t in completed_tasks if t.completed_at and t.completed_at >= start_week]
+
+    # Tâches en retard
+    overdue_tasks = [t for t in tasks if t.due_date and t.status != "completed" and t.due_date < now]
+    num_overdue = len(overdue_tasks)
+
+    # Catégorie la plus active
+    categories = [t.category for t in tasks if t.category]
+    most_active_cat = Counter(categories).most_common(1)[0][0] if categories else "Aucune"
+
+    # Tendance (plus ou moins de tâches terminées que la semaine précédente)
+    start_last_week = start_week - timedelta(days=7)
+    end_last_week = start_week
+    completed_last_week = [t for t in completed_tasks if t.completed_at and start_last_week <= t.completed_at < end_last_week]
+    trend = "Stable"
+    if len(completed_this_week) > len(completed_last_week):
+        trend = "En hausse"
+    elif len(completed_this_week) < len(completed_last_week):
+        trend = "En baisse"
+
+    # Taux de complétion
+    completion_rate = (num_completed / total_tasks * 100) if total_tasks > 0 else 0
+
     # Distribution par catégorie
-    categories = {}
-    for task in tasks:
-        cat = task.category
-        categories[cat] = categories.get(cat, 0) + 1
-    
+    cat_dist = dict(Counter(categories))
+
+    # Insights
+    insights = [
+        {"label": "Tâches créées cette semaine", "value": len(tasks_this_week)},
+        {"label": "Tâches terminées cette semaine", "value": len(completed_this_week)},
+        {"label": "Tâches en retard", "value": num_overdue},
+        {"label": "Catégorie la plus active", "value": most_active_cat},
+        {"label": "Taux de complétion", "value": f"{completion_rate:.1f}%"},
+        {"label": "Tendance", "value": trend}
+    ]
+
+    # Recommandations personnalisées
+    recommendations = []
+    if completion_rate >= 80:
+        recommendations.append("Excellent ! Ton taux de complétion est remarquable.")
+    elif completion_rate >= 50:
+        recommendations.append("Bon rythme, continue à terminer tes tâches.")
+    else:
+        recommendations.append("Essaie de terminer plus de tâches pour progresser.")
+    if num_overdue > 0:
+        recommendations.append(f"Attention : {num_overdue} tâche(s) en retard. Pense à les replanifier.")
+    if trend == "En hausse":
+        recommendations.append("Bravo, tu as terminé plus de tâches cette semaine !")
+    elif trend == "En baisse":
+        recommendations.append("Moins de tâches terminées cette semaine, ajuste tes priorités si besoin.")
+    if most_active_cat != "Aucune":
+        recommendations.append(f"Tu es très actif sur la catégorie '{most_active_cat}'. Essaie de diversifier si possible.")
+
     return TaskHistoryResponse(
-        summary=f"Vous avez {total_tasks} tâches au total, dont {completed_tasks} terminées.",
-        insights=[
-            f"Taux de complétion: {completion_rate:.1f}%",
-            f"Catégorie la plus active: {max(categories.items(), key=lambda x: x[1])[0] if categories else 'Aucune'}"
-        ],
-        recommendations=[
-            "Continuez à organiser vos priorités",
-            "Prenez des pauses régulières",
-            "Célébrez vos accomplissements"
-        ],
+        type="insight", # Force le type pour la réponse
+        summary=f"{num_completed} tâche(s) terminée(s) sur {total_tasks} au total.",
+        insights=[f"{i['label']}: {i['value']}" for i in insights],
+        recommendations=recommendations,
         productivity_score=min(completion_rate, 100),
         completion_rate=completion_rate,
-        task_distribution=categories
+        task_distribution=cat_dist
     )
 
 async def archive_task(task_id: str, keep_memory: bool) -> Optional[dict]:

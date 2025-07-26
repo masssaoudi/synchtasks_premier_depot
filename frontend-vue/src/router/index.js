@@ -2,35 +2,40 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 
 // Import des composants
-import LoginView from '../views/LoginView.vue'
 import HomeView from '../views/HomeView.vue'
 import TasksView from '../views/TasksView.vue'
 import DashboardView from '../views/DashboardView.vue'
+import PersonneAidantView from '../views/PersonneAidantView.vue'
 
 const routes = [
   {
-    path: '/login',
-    name: 'login',
-    component: LoginView,
-    meta: { requiresGuest: true }
-  },
-  {
     path: '/',
-    name: 'home',
-    component: HomeView,
-    meta: { requiresAuth: true }
+    name: 'Home',
+    component: () => import('../views/HomeView.vue')
   },
   {
-    path: '/tasks',
-    name: 'tasks',
-    component: TasksView,
+    path: '/welcome',
+    name: 'Welcome',
+    component: () => import('../views/WelcomeView.vue'),
     meta: { requiresAuth: true }
   },
   {
     path: '/dashboard',
     name: 'dashboard',
-    component: DashboardView,
+    component: () => import('../views/DashboardView.vue'),
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/tasks',
+    name: 'tasks',
+    component: () => import('../views/TasksView.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/personne-aidant',
+    name: 'personneAidant',
+    component: () => import('../views/PersonneAidantView.vue'),
+    meta: { requiresAuth: false }
   }
 ]
 
@@ -45,7 +50,7 @@ router.beforeEach((to, from, next) => {
   
   // Si la route nécessite une authentification
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    next('/login')
+    next('/') // Redirection vers la page d'accueil au lieu de /login
     return
   }
   

@@ -13,6 +13,7 @@ from auth_routes import router as auth_router
 from ia_routes import router as ia_router
 from models import TaskInDB
 from ws_manager import manager
+from delegation_routes import router as delegation_router
 
 # Configure logging
 logging.basicConfig(
@@ -49,7 +50,10 @@ app = FastAPI(
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # En production, spécifiez les domaines autorisés
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -88,6 +92,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 app.include_router(router)
 app.include_router(auth_router)
 app.include_router(ia_router)
+app.include_router(delegation_router)
 
 # Root endpoint
 @app.get("/", tags=["root"])

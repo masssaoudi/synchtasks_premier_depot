@@ -5,6 +5,7 @@ from datetime import datetime
 from models import UserCreate, UserResponse, Token, UserUpdate, APIResponse, LoginRequest
 from auth import login_user, register_user, get_current_active_user, get_user_by_id, get_user_by_username
 from database import get_database
+from delegation_routes import router as delegation_router
 
 # ============================================================================
 # ROUTER AUTHENTIFICATION

@@ -146,6 +146,7 @@ class TaskUpdate(BaseModel):
     project_id: Optional[str] = None
     assignee_id: Optional[str] = None
     due_date: Optional[datetime] = None
+    status: Optional[TaskStatusEnum] = None
 
 class TaskInDB(TaskBase):
     id: str = Field(..., alias="_id")
@@ -235,3 +236,42 @@ class PaginatedResponse(BaseModel):
     page: int
     size: int
     pages: int 
+
+class DelegationStatusEnum(str, Enum):
+    pending = "pending"
+    accepted = "accepted"
+    revoked = "revoked"
+
+class DelegationInDB(BaseModel):
+    id: str = Field(..., alias="_id")
+    user_id: str = Field(..., description="ID de l'utilisateur aidé")
+    aidant_id: str = Field(..., description="ID de la personne aidante")
+    status: DelegationStatusEnum = Field(default=DelegationStatusEnum.pending)
+    invited_at: datetime = Field(default_factory=datetime.utcnow)
+    accepted_at: Optional[datetime] = None
+    revoked_at: Optional[datetime] = None
+
+    model_config = {
+        "populate_by_name": True,
+        "arbitrary_types_allowed": True,
+        "json_encoders": {
+            "ObjectId": str
+        },
+        "json_schema_extra": {
+            "example": {
+                "user_id": "user123",
+                "aidant_id": "aidant456",
+                "status": "pending",
+                "invited_at": "2024-01-15T10:30:00Z",
+                "accepted_at": None,
+                "revoked_at": None
+            }
+        }
+    } 
+
+class DelegationCreate(BaseModel):
+    nom: str
+    prenom: str
+    email: EmailStr
+    telephone: str
+    user_id: Optional[str] = None  # L'utilisateur qui délègue 

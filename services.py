@@ -4,6 +4,7 @@ from typing import List, Optional, Dict, Any
 from bson import ObjectId
 from pymongo.errors import DuplicateKeyError
 import logging
+from enum import Enum
 
 from database import get_database
 from models import TaskCreate, TaskInDB, TaskUpdate, CategoryEnum, PriorityEnum
@@ -80,12 +81,11 @@ class TaskService:
             created_task = await collection.find_one({"_id": result.inserted_id})
             task_in_db = TaskInDB(**fill_missing_fields(created_task))
             
-            # Diffuser la création via WebSocket (désactivé en mode test)
+            # Diffuser la création via WebSocket
             try:
-                await broadcast_task_created(task_data)
+                await broadcast_task_created(task_in_db.model_dump())
             except Exception as e:
-                # Ignorer les erreurs WebSocket en mode test
-                pass
+                logger.warning(f"Erreur WebSocket broadcast création: {e}")
             
             return task_in_db
             
@@ -154,15 +154,20 @@ class TaskService:
             collection = self._get_collection()
             update_data = task_update.model_dump(exclude_unset=True)  # Utiliser model_dump
             update_data["updated_at"] = datetime.utcnow()
-            
+
             # If marking as completed, set completed_at
             if task_update.completed and not update_data.get("completed_at"):
                 update_data["completed_at"] = datetime.utcnow()
             elif task_update.completed is False:
                 update_data["completed_at"] = None
-            
+
             # Gérer le statut en fonction du completed
             if "status" in update_data:
+                # Mapper "completed" vers "done" pour la compatibilité
+                if update_data["status"] == "completed":
+                    update_data["status"] = "done"
+
+                # Mettre à jour completed et completed_at selon le statut
                 if update_data["status"] == "done":
                     update_data["completed"] = True
                     if not update_data.get("completed_at"):
@@ -170,7 +175,16 @@ class TaskService:
                 else:
                     update_data["completed"] = False
                     update_data["completed_at"] = None
-            
+
+            # Correction ultime : forcer la valeur string du status
+            if "status" in update_data:
+                s = update_data["status"]
+                if hasattr(s, "value"):
+                    update_data["status"] = s.value
+                else:
+                    update_data["status"] = str(s)
+            print(f"🛠️ update_data envoyé à MongoDB: {update_data}")
+
             result = await collection.update_one(
                 {"_id": ObjectId(task_id)},
                 {"$set": update_data}
@@ -179,12 +193,11 @@ class TaskService:
             if result.modified_count:
                 updated_task = await self.get_task_by_id(task_id)
                 if updated_task:
-                    # Diffuser la mise à jour via WebSocket (désactivé en mode test)
+                    # Diffuser la mise à jour via WebSocket
                     try:
                         await broadcast_task_updated(updated_task.model_dump())
                     except Exception as e:
-                        # Ignorer les erreurs WebSocket en mode test
-                        pass
+                        logger.warning(f"Erreur WebSocket broadcast mise à jour: {e}")
                     return updated_task
             return None
             
@@ -198,12 +211,11 @@ class TaskService:
             collection = self._get_collection()
             result = await collection.delete_one({"_id": ObjectId(task_id)})
             if result.deleted_count > 0:
-                # Diffuser la suppression via WebSocket (désactivé en mode test)
+                # Diffuser la suppression via WebSocket
                 try:
                     await broadcast_task_deleted(task_id)
                 except Exception as e:
-                    # Ignorer les erreurs WebSocket en mode test
-                    pass
+                    logger.warning(f"Erreur WebSocket broadcast suppression: {e}")
             return result.deleted_count > 0
             
         except Exception as e:
@@ -235,12 +247,11 @@ class TaskService:
             if result.modified_count:
                 updated_task = await self.get_task_by_id(task_id)
                 if updated_task:
-                    # Diffuser la completion via WebSocket (désactivé en mode test)
+                    # Diffuser la completion via WebSocket
                     try:
                         await broadcast_task_completed(updated_task.model_dump())
                     except Exception as e:
-                        # Ignorer les erreurs WebSocket en mode test
-                        pass
+                        logger.warning(f"Erreur WebSocket broadcast completion: {e}")
                     return updated_task
             return None
                 
@@ -310,3 +321,161 @@ class TaskService:
 
 # Create service instance
 task_service = TaskService() 
+
+class DelegationService:
+    def __init__(self):
+        self.collection = None
+
+    def _get_collection(self):
+        if self.collection is None:
+            self.collection = get_database().delegations
+        return self.collection
+
+    # Squelette pour les méthodes à venir (invite, accept, revoke, etc.)
+    # async def invite_aidant(...):
+    # async def accept_delegation(...):
+    # async def revoke_delegation(...): 
+
+    async def invite_aidant(self, user_id: str, aidant_id: str):
+        """Invite une personne aidante pour un utilisateur donné."""
+        collection = self._get_collection()
+        from models import DelegationInDB, DelegationStatusEnum
+        from datetime import datetime
+        from bson import ObjectId
+
+        # Vérifier s'il existe déjà une délégation active
+        existing = await collection.find_one({
+            "user_id": user_id,
+            "aidant_id": aidant_id,
+            "status": {"$in": [DelegationStatusEnum.pending, DelegationStatusEnum.accepted]}
+        })
+        if existing:
+            raise Exception("Une délégation active existe déjà entre ces utilisateurs.")
+
+        # Créer la délégation
+        delegation_doc = {
+            "user_id": user_id,
+            "aidant_id": aidant_id,
+            "status": DelegationStatusEnum.pending,
+            "invited_at": datetime.utcnow(),
+            "accepted_at": None,
+            "revoked_at": None
+        }
+        result = await collection.insert_one(delegation_doc)
+        created = await collection.find_one({"_id": result.inserted_id})
+        return DelegationInDB(**{**created, "_id": str(created["_id"])}) 
+
+    async def accept_delegation(self, delegation_id: str, aidant_id: str):
+        """Accepte une invitation de délégation (par l'aidant)."""
+        collection = self._get_collection()
+        from models import DelegationInDB, DelegationStatusEnum
+        from datetime import datetime
+        from bson import ObjectId
+
+        delegation = await collection.find_one({"_id": ObjectId(delegation_id)})
+        if not delegation:
+            raise Exception("Délégation introuvable.")
+        if delegation["aidant_id"] != aidant_id:
+            raise Exception("Non autorisé à accepter cette délégation.")
+        if delegation["status"] != DelegationStatusEnum.pending:
+            raise Exception("La délégation n'est pas en attente.")
+
+        await collection.update_one(
+            {"_id": ObjectId(delegation_id)},
+            {"$set": {"status": DelegationStatusEnum.accepted, "accepted_at": datetime.utcnow()}}
+        )
+        updated = await collection.find_one({"_id": ObjectId(delegation_id)})
+        return DelegationInDB(**{**updated, "_id": str(updated["_id"])})
+
+    async def revoke_delegation(self, delegation_id: str, user_id: str):
+        """Révoque une délégation (par l'utilisateur principal)."""
+        collection = self._get_collection()
+        from models import DelegationInDB, DelegationStatusEnum
+        from datetime import datetime
+        from bson import ObjectId
+
+        delegation = await collection.find_one({"_id": ObjectId(delegation_id)})
+        if not delegation:
+            raise Exception("Délégation introuvable.")
+        if delegation["user_id"] != user_id:
+            raise Exception("Non autorisé à révoquer cette délégation.")
+        if delegation["status"] == DelegationStatusEnum.revoked:
+            raise Exception("La délégation est déjà révoquée.")
+
+        await collection.update_one(
+            {"_id": ObjectId(delegation_id)},
+            {"$set": {"status": DelegationStatusEnum.revoked, "revoked_at": datetime.utcnow()}}
+        )
+        updated = await collection.find_one({"_id": ObjectId(delegation_id)})
+        return DelegationInDB(**{**updated, "_id": str(updated["_id"])}) 
+
+    async def create_delegation(self, delegation_data):
+        """Crée une nouvelle délégation avec nom, prénom, email, téléphone, user_id, aidant_id."""
+        from database import get_database
+        db = get_database()
+        from models import DelegationInDB, DelegationStatusEnum, UserCreate
+        from datetime import datetime
+        from auth import get_password_hash
+        collection = self._get_collection()
+
+        # Chercher ou créer l'utilisateur aidant par email
+        existing_aidant = await db.users.find_one({"email": delegation_data.email})
+        if existing_aidant:
+            aidant_id = str(existing_aidant["_id"])
+        else:
+            # Créer un utilisateur aidant avec un mot de passe temporaire
+            username = f"aidant_{delegation_data.email.split('@')[0]}"
+            password = get_password_hash("changeme123")
+            user_doc = {
+                "username": username,
+                "email": delegation_data.email,
+                "full_name": f"{delegation_data.prenom} {delegation_data.nom}",
+                "hashed_password": password,
+                "is_active": True,
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow()
+            }
+            result_user = await db.users.insert_one(user_doc)
+            aidant_id = str(result_user.inserted_id)
+
+        # user_id (celui qui délègue)
+        user_id = delegation_data.user_id
+        if not user_id:
+            raise Exception("user_id (délégant) requis")
+
+        # Créer la délégation
+        doc = {
+            "user_id": user_id,
+            "aidant_id": aidant_id,
+            "status": DelegationStatusEnum.pending,
+            "invited_at": datetime.utcnow(),
+            "accepted_at": None,
+            "revoked_at": None,
+            "nom": delegation_data.nom,
+            "prenom": delegation_data.prenom,
+            "email": delegation_data.email,
+            "telephone": delegation_data.telephone
+        }
+        result = await collection.insert_one(doc)
+        created = await collection.find_one({'_id': result.inserted_id})
+        return DelegationInDB(**{**created, '_id': str(created['_id'])})
+
+    async def is_email_aidant(self, email: str) -> bool:
+        """Vérifie si l'email correspond à un aidant accepté dans une délégation."""
+        from database import get_database
+        db = get_database()
+        user = await db.users.find_one({"email": email})
+        if not user:
+            return False
+        aidant_id = str(user["_id"])
+        delegation = await self._get_collection().find_one({
+            "aidant_id": aidant_id,
+            "status": "accepted"
+        })
+        return delegation is not None 
+
+    async def get_delegations_for_aidant(self, aidant_id):
+        """Retourne la liste des délégations où l'utilisateur est aidant."""
+        collection = self._get_collection()
+        cursor = collection.find({"aidant_id": str(aidant_id)})
+        return [doc async for doc in cursor] 

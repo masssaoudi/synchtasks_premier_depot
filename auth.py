@@ -58,8 +58,11 @@ async def verify_token(token: str) -> Optional[TokenData]:
 # ============================================================================
 
 async def get_user_by_username(db: AsyncIOMotorClient, username: str) -> Optional[UserInDB]:
-    """Récupère un utilisateur par son nom d'utilisateur"""
-    user_data = await db.users.find_one({"username": username})
+    """Récupère un utilisateur par email (si @) ou par username sinon, insensible à la casse."""
+    if "@" in username:
+        user_data = await db.users.find_one({"email": {"$regex": f"^{username}$", "$options": "i"}})
+    else:
+        user_data = await db.users.find_one({"username": {"$regex": f"^{username}$", "$options": "i"}})
     if user_data:
         user_data["_id"] = str(user_data["_id"])
         return UserInDB(**user_data)

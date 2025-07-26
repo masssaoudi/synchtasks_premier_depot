@@ -4,6 +4,7 @@ import os
 from typing import List, Dict, Any
 from fastapi import WebSocket, WebSocketDisconnect
 from fastapi.websockets import WebSocketState
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -112,6 +113,23 @@ class ConnectionManager:
             
             logger.info(f"📡 Broadcast utilisateur {user_id}: {len(self.user_connections.get(user_id, []))} clients")
 
+def serialize_task_data(task_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Sérialise les données de tâche pour JSON (convertit les datetime)"""
+    serialized = {}
+    for key, value in task_data.items():
+        if isinstance(value, datetime):
+            serialized[key] = value.isoformat()
+        elif isinstance(value, dict):
+            serialized[key] = serialize_task_data(value)
+        elif isinstance(value, list):
+            serialized[key] = [
+                serialize_task_data(item) if isinstance(item, dict) else item 
+                for item in value
+            ]
+        else:
+            serialized[key] = value
+    return serialized
+
 # Instance globale du gestionnaire de connexions
 manager = ConnectionManager()
 
@@ -121,11 +139,14 @@ async def broadcast_task_update(task_data: Dict[str, Any], action: str = "update
     if DISABLE_WEBSOCKETS:
         return
         
+    # Sérialiser les données pour JSON
+    serialized_task = serialize_task_data(task_data)
+    
     message = {
         "type": "task_update",
         "action": action,  # "create", "update", "delete", "complete"
-        "task": task_data,
-        "timestamp": task_data.get("updated_at")
+        "task": serialized_task,
+        "timestamp": serialized_task.get("updated_at")
     }
     await manager.broadcast(message)
 

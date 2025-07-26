@@ -7,7 +7,7 @@
           🧠 Historique IA
         </button>
         <button @click="showNewTaskModal = true" class="btn btn-primary">
-          + Nouvelle tâche
+          ➕ Nouvelle tâche
         </button>
       </div>
     </div>
@@ -25,82 +25,59 @@
 
     <!-- Tableau Kanban -->
     <div class="kanban-board">
+      
       <div class="kanban-column">
         <h3>📝 À faire</h3>
-        <div class="task-list">
-          <div 
-            v-for="task in tasks.filter(t => t.status === 'todo')" 
-            :key="task.id"
-            class="task-card"
-            @click="editTask(task)"
-          >
-            <h4>{{ task.title }}</h4>
-            <p>{{ task.description }}</p>
-            <div class="task-meta">
-              <span class="category" :class="`category-${task.category}`">
-                {{ getCategoryIcon(task.category) }} {{ getCategoryLabel(task.category) }}
-              </span>
-              <span class="priority" :class="`priority-${task.priority}`">
-                {{ getPriorityLabel(task.priority) }}
-              </span>
-              <span class="due-date" v-if="task.due_date">
-                📅 {{ formatDate(task.due_date) }}
-              </span>
+        <draggable v-model="todoTasks" group="tasks" @change="onMoveTask" item-key="id" class="task-list" data-status="todo">
+          <template #item="{ element: task }">
+            <div class="task-card">
+              <h4>{{ task.title }}</h4>
+              <p>{{ task.description }}</p>
+              <div class="task-meta">
+                <span class="category" :class="`category-${task.category}`">
+                  {{ getCategoryIcon(task.category) }} {{ getCategoryLabel(task.category) }}
+                </span>
+                <span class="priority" :class="`priority-${task.priority}`">
+                  {{ getPriorityLabel(task.priority) }}
+                </span>
+                <span class="due-date" v-if="task.due_date">
+                  📅 {{ formatDate(task.due_date) }}
+                </span>
+              </div>
+              <div class="task-actions">
+                <button @click.stop="editTask(task)" class="btn btn-secondary btn-sm">✏️</button>
+                <button @click.stop="deleteTask(task)" class="btn btn-danger btn-sm">🗑️</button>
+              </div>
             </div>
-          </div>
-        </div>
+          </template>
+        </draggable>
       </div>
-
-      <div class="kanban-column">
-        <h3>🔄 En cours</h3>
-        <div class="task-list">
-          <div 
-            v-for="task in tasks.filter(t => t.status === 'progress')" 
-            :key="task.id"
-            class="task-card"
-            @click="editTask(task)"
-          >
-            <h4>{{ task.title }}</h4>
-            <p>{{ task.description }}</p>
-            <div class="task-meta">
-              <span class="category" :class="`category-${task.category}`">
-                {{ getCategoryIcon(task.category) }} {{ getCategoryLabel(task.category) }}
-              </span>
-              <span class="priority" :class="`priority-${task.priority}`">
-                {{ getPriorityLabel(task.priority) }}
-              </span>
-              <span class="due-date" v-if="task.due_date">
-                📅 {{ formatDate(task.due_date) }}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
+      <!-- Suppression de la colonne En cours -->
       <div class="kanban-column">
         <h3>✅ Terminé</h3>
-        <div class="task-list">
-          <div 
-            v-for="task in tasks.filter(t => t.status === 'completed')" 
-            :key="task.id"
-            class="task-card completed"
-            @click="editTask(task)"
-          >
-            <h4>{{ task.title }}</h4>
-            <p>{{ task.description }}</p>
-            <div class="task-meta">
-              <span class="category" :class="`category-${task.category}`">
-                {{ getCategoryIcon(task.category) }} {{ getCategoryLabel(task.category) }}
-              </span>
-              <span class="priority" :class="`priority-${task.priority}`">
-                {{ getPriorityLabel(task.priority) }}
-              </span>
-              <span class="due-date" v-if="task.due_date">
-                📅 {{ formatDate(task.due_date) }}
-              </span>
+        <draggable v-model="completedTasks" group="tasks" @change="onMoveTask" item-key="id" class="task-list" data-status="done">
+          <template #item="{ element: task }">
+            <div class="task-card completed">
+              <h4>{{ task.title }}</h4>
+              <p>{{ task.description }}</p>
+              <div class="task-meta">
+                <span class="category" :class="`category-${task.category}`">
+                  {{ getCategoryIcon(task.category) }} {{ getCategoryLabel(task.category) }}
+                </span>
+                <span class="priority" :class="`priority-${task.priority}`">
+                  {{ getPriorityLabel(task.priority) }}
+                </span>
+                <span class="due-date" v-if="task.due_date">
+                  📅 {{ formatDate(task.due_date) }}
+                </span>
+              </div>
+              <div class="task-actions">
+                <button @click.stop="editTask(task)" class="btn btn-secondary btn-sm">✏️</button>
+                <button @click.stop="deleteTask(task)" class="btn btn-danger btn-sm">🗑️</button>
+              </div>
             </div>
-          </div>
-        </div>
+          </template>
+        </draggable>
       </div>
     </div>
 
@@ -157,13 +134,19 @@
             </select>
           </div>
 
+          <!-- Remplacer le champ date natif par le datepicker -->
           <div class="form-group">
             <label for="due_date">Date d'échéance</label>
-            <input 
-              type="date" 
-              id="due_date" 
+            <Datepicker
               v-model="newTask.due_date"
-            >
+              :format="'dd/MM/yyyy'"
+              :input-class="'datepicker-input'"
+              :placeholder="'Sélectionner une date'"
+              :clearable="true"
+              :editable="true"
+              locale="fr"
+              id="due_date"
+            />
           </div>
 
           <div class="modal-actions">
@@ -182,69 +165,153 @@
     <div v-if="showHistoryModal" class="modal-overlay" @click="showHistoryModal = false">
       <div class="modal history-modal" @click.stop>
         <h3>🧠 Historique Intelligent</h3>
-        
+        <div class="mode-selector">
+          <button :class="{active: historyMode === 'insight'}" @click="setHistoryMode('insight')">Analyse IA</button>
+          <button :class="{active: historyMode === 'etat'}" @click="setHistoryMode('etat')">État Kanban</button>
+          <button :class="{active: historyMode === 'journal'}" @click="setHistoryMode('journal')">Journal</button>
+        </div>
         <div v-if="historyLoading" class="loading-indicator">
           <div class="loading-spinner"></div>
           <p>Analyse en cours...</p>
         </div>
-        
-        <div v-else-if="historyData" class="history-content">
-          <div class="history-summary">
-            <h4>📊 Résumé</h4>
-            <p>{{ historyData.summary }}</p>
+        <div v-else>
+          <!-- Debug info -->
+          <div style="background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px; font-size: 12px;">
+            <strong>Debug:</strong><br>
+            historyLoading: {{ historyLoading }}<br>
+            historyData: {{ historyData ? 'Existe' : 'Null' }}<br>
+            historyMode: {{ historyMode }}<br>
+            <span v-if="historyData">Type: {{ historyData.type }}</span>
           </div>
           
-          <div class="history-metrics">
-            <div class="metric">
-              <span class="metric-label">Score de productivité</span>
-              <span class="metric-value">{{ historyData.productivity_score.toFixed(1) }}/100</span>
-            </div>
-            <div class="metric">
-              <span class="metric-label">Taux de complétion</span>
-              <span class="metric-value">{{ historyData.completion_rate.toFixed(1) }}%</span>
-            </div>
-          </div>
-          
-          <div class="history-insights">
-            <h4>💡 Insights</h4>
-            <ul>
-              <li v-for="insight in historyData.insights" :key="insight">{{ insight }}</li>
-            </ul>
-          </div>
-          
-          <div class="history-recommendations">
-            <h4>🎯 Recommandations</h4>
-            <ul>
-              <li v-for="rec in historyData.recommendations" :key="rec">{{ rec }}</li>
-            </ul>
-          </div>
-          
-          <div class="history-distribution">
-            <h4>📈 Distribution par catégorie</h4>
-            <div class="distribution-chart">
-              <div 
-                v-for="(count, category) in historyData.task_distribution" 
-                :key="category"
-                class="distribution-item"
-              >
-                <span class="category-name">{{ getCategoryLabel(category) }}</span>
-                <div class="distribution-bar">
-                  <div 
-                    class="distribution-fill" 
-                    :style="{ width: (count / Math.max(...Object.values(historyData.task_distribution)) * 100) + '%' }"
-                  ></div>
-                </div>
-                <span class="category-count">{{ count }}</span>
+          <div v-if="historyData">
+            <div v-if="historyData.type === 'insight'">
+              <div class="history-summary">
+                <h4>📊 Résumé</h4>
+                <p>{{ historyData.summary }}</p>
+              </div>
+              <div class="history-insights">
+                <h4>💡 Insights</h4>
+                <ul>
+                  <li v-for="insight in historyData.insights" :key="insight.label">
+                    <strong>{{ insight.label }} :</strong> {{ insight.value }}
+                  </li>
+                </ul>
+              </div>
+              <div class="history-recommendations">
+                <h4>🎯 Recommandations</h4>
+                <ul>
+                  <li v-for="rec in historyData.recommendations" :key="rec">
+                    {{ rec }}
+                  </li>
+                </ul>
               </div>
             </div>
+            <div v-else-if="historyData.type === 'etat'">
+              <h4>📋 État Kanban</h4>
+              <div class="kanban-snapshot">
+                <div v-for="(tasks, col) in historyData.kanban" :key="col" class="kanban-col-snap">
+                  <h5>{{ col }}</h5>
+                  <ul>
+                    <li v-for="task in tasks" :key="task.id || task._id">
+                      {{ task.title }} <span v-if="task.due_date">({{ formatDate(task.due_date) }})</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            <div v-else-if="historyData.type === 'journal'">
+              <h4>🕒 Journal d'activité</h4>
+              <ul>
+                <li v-for="event in historyData.events" :key="event.date + event.task">
+                  <span>{{ formatDate(event.date) }}</span> — <strong>{{ event.task }}</strong> {{ event.action }}
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div v-else>
+            <p>Aucune donnée d'historique disponible.</p>
           </div>
         </div>
-        
         <div class="modal-actions">
           <button @click="showHistoryModal = false" class="btn btn-secondary">
             Fermer
           </button>
         </div>
+      </div>
+    </div>
+
+    <!-- Modal pour éditer une tâche -->
+    <div v-if="showEditTaskModal" class="modal-overlay" @click="showEditTaskModal = false">
+      <div class="modal" @click.stop>
+        <h3>Modifier la tâche</h3>
+        <form @submit.prevent="updateTask">
+          <div class="form-group">
+            <label for="edit-title">Titre</label>
+            <input 
+              type="text" 
+              id="edit-title" 
+              v-model="editingTask.title" 
+              required
+              placeholder="Titre de la tâche"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="edit-description">Description</label>
+            <textarea 
+              id="edit-description" 
+              v-model="editingTask.description" 
+              rows="3"
+              placeholder="Description de la tâche"
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-category">Type de tâche</label>
+            <select id="edit-category" v-model="editingTask.category" required>
+              <option value="">Sélectionnez un type</option>
+              <option 
+                v-for="category in categories" 
+                :key="category.value" 
+                :value="category.value"
+              >
+                {{ category.icon }} {{ category.label }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-priority">Priorité</label>
+            <select id="edit-priority" v-model="editingTask.priority" required>
+              <option 
+                v-for="priority in priorities" 
+                :key="priority.value" 
+                :value="priority.value"
+              >
+                {{ priority.label }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-due_date">Date d'échéance</label>
+            <input 
+              type="date" 
+              id="edit-due_date" 
+              v-model="editingTask.due_date"
+            >
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" @click="showEditTaskModal = false" class="btn btn-secondary">
+              Annuler
+            </button>
+            <button type="submit" class="btn btn-primary">
+              Mettre à jour
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   </div>
@@ -253,9 +320,13 @@
 <script>
 import { ref, reactive, onMounted, watch } from 'vue'
 import axios from 'axios'
+import Datepicker from '@vuepic/vue-datepicker'
+import '@vuepic/vue-datepicker/dist/main.css'
+import draggable from 'vuedraggable'
 
 export default {
   name: 'TasksView',
+  components: { Datepicker, draggable },
   setup() {
     const tasks = ref([])
     const loading = ref(false)
@@ -263,6 +334,7 @@ export default {
     const priorities = ref([])
 
     const showNewTaskModal = ref(false)
+    const showEditTaskModal = ref(false)
     const alert = ref(null)
 
     const newTask = reactive({
@@ -273,9 +345,19 @@ export default {
       due_date: ''
     })
 
+    const editingTask = reactive({
+      _id: '',
+      title: '',
+      description: '',
+      category: '',
+      priority: 'normale',
+      due_date: ''
+    })
+
     const showHistoryModal = ref(false)
     const historyLoading = ref(false)
     const historyData = ref(null)
+    const historyMode = ref('insight')
 
     const showAlert = (message, type = 'success') => {
       alert.value = { message, type }
@@ -349,8 +431,40 @@ export default {
     }
 
     const editTask = (task) => {
-      // Pour l'instant, on affiche juste les détails
-      showAlert(`Édition de la tâche: ${task.title}`)
+      // Préparer les données pour l'édition
+      editingTask._id = task._id
+      editingTask.title = task.title
+      editingTask.description = task.description || ''
+      editingTask.category = task.category
+      editingTask.priority = task.priority
+      editingTask.due_date = task.due_date ? task.due_date.split('T')[0] : ''
+      showEditTaskModal.value = true
+    }
+
+    const updateTask = async () => {
+      try {
+        const taskData = {
+          title: editingTask.title,
+          description: editingTask.description,
+          priority: editingTask.priority,
+          category: editingTask.category,
+          due_date: editingTask.due_date ? new Date(editingTask.due_date).toISOString() : null
+        }
+        
+        const response = await axios.put(`/api/tasks/${editingTask._id}`, taskData)
+        
+        // Mettre à jour la tâche dans la liste
+        const index = tasks.value.findIndex(t => t._id === editingTask._id)
+        if (index !== -1) {
+          tasks.value[index] = response.data
+        }
+        
+        showEditTaskModal.value = false
+        showAlert('Tâche mise à jour avec succès')
+      } catch (error) {
+        console.error('Erreur lors de la mise à jour de la tâche:', error)
+        showAlert('Erreur lors de la mise à jour de la tâche', 'error')
+      }
     }
 
     const formatDate = (dateString) => {
@@ -432,16 +546,193 @@ export default {
       }
     })
 
+    // Ajout des listes réactives pour chaque colonne
+    const todoTasks = ref([])
+    const completedTasks = ref([])
+    
+    // État pour le bouton de sauvegarde
+    // const hasUnsavedChanges = ref(false) // Supprimé
+    // const isSaving = ref(false) // Supprimé
+
+    // Fonction pour répartir les tâches dans les colonnes
+    const distributeTasks = () => {
+      todoTasks.value = tasks.value.filter(t => t.status === 'todo')
+      completedTasks.value = tasks.value.filter(t => t.status === 'done')  // Corrigé : 'done' au lieu de 'completed'
+    }
+
+    // Appeler distributeTasks à chaque chargement ou modification des tâches
+    watch(tasks, distributeTasks, { immediate: true, deep: true })
+
+    // Fonction pour gérer le début du drag
+    const onDragStart = (evt) => {
+      console.log('🎯 onDragStart appelée avec:', evt)
+    }
+
+    // Fonction pour gérer le drop (changement de colonne)
+    const onMoveTask = async (evt) => {
+      try {
+        console.log("🎯 Event reçu :", evt);
+
+        const added = evt.added;
+        const removed = evt.removed;
+
+        let movedTask = null;
+        let newStatus = null;
+
+        if (added) {
+          movedTask = added.element;
+          // Correction : on prend la valeur exacte du data-status de la colonne cible
+          newStatus = (evt.to && evt.to.dataset && evt.to.dataset.status) || movedTask.status;
+        } else if (removed) {
+          movedTask = removed.element;
+          newStatus = (evt.to && evt.to.dataset && evt.to.dataset.status) || movedTask.status;
+        }
+
+        if (!movedTask) {
+          console.warn("❌ Tâche déplacée introuvable");
+          return;
+        }
+
+        // Correction : forcer la valeur du statut selon la colonne cible
+        if (newStatus !== 'todo' && newStatus !== 'done') {
+          // Si jamais une valeur inattendue, fallback sur la colonne
+          if (evt.to && evt.to.dataset && evt.to.dataset.status) {
+            newStatus = evt.to.dataset.status;
+          } else {
+            newStatus = movedTask.status;
+          }
+        }
+        movedTask.status = newStatus;
+
+        // Enregistrement côté backend
+        const taskId = movedTask.id || movedTask._id || (movedTask._id && movedTask._id.$oid);
+        if (!taskId) {
+          console.warn("❌ ID de tâche introuvable");
+          return;
+        }
+        await axios.put(`/api/tasks/${taskId}`, { status: newStatus });
+        showAlert(
+          `Tâche déplacée vers "${newStatus === 'done' ? 'Terminé' : 'À faire'}" et enregistrée !`,
+          "success"
+        );
+      } catch (err) {
+        showAlert("❌ Erreur lors de l'enregistrement automatique", "error");
+        console.error("❌ Erreur de mise à jour :", err);
+      }
+    };
+
+    // Suppression d'une tâche
+    const deleteTask = async (task) => {
+      console.log("🗑️ Tentative de suppression de la tâche :", task)
+      
+      if (!task) {
+        console.error("❌ Aucune tâche fournie pour la suppression")
+        showAlert('Erreur : aucune tâche sélectionnée', 'error')
+        return
+      }
+
+      // Récupérer l'ID de manière sécurisée (comme dans onMoveTask)
+      const taskId = task._id || task.id
+      
+      if (!taskId) {
+        console.error("❌ ID de la tâche manquant:", task)
+        showAlert('Erreur : ID de la tâche manquant', 'error')
+        return
+      }
+
+      if (confirm(`Supprimer la tâche "${task.title}" ?`)) {
+        try {
+          console.log(`🗑️ Suppression de la tâche ${taskId}: "${task.title}"`)
+          await axios.delete(`/api/tasks/${taskId}`)
+          console.log("✅ Tâche supprimée avec succès")
+          showAlert('Tâche supprimée')
+          await loadTasks()
+        } catch (error) {
+          console.error("❌ Erreur lors de la suppression:", error)
+          showAlert('Erreur lors de la suppression', 'error')
+        }
+      }
+    }
+
+    const setHistoryMode = async (mode) => {
+      console.log(`🔄 Chargement de l'historique IA en mode: ${mode}`)
+      historyMode.value = mode
+      historyLoading.value = true
+      try {
+        const response = await axios.get(`/api/ia/history?mode=${mode}`)
+        console.log('📊 Réponse API historique:', response.data)
+        historyData.value = response.data
+        console.log('💾 Données historiques mises à jour:', historyData.value)
+      } catch (error) {
+        console.error('❌ Erreur lors du chargement de l\'historique:', error)
+        showAlert('Erreur lors du chargement de l\'historique', 'error')
+      } finally {
+        historyLoading.value = false
+        console.log('✅ Chargement terminé, historyLoading:', historyLoading.value)
+      }
+    }
+
+    // Charger l'historique quand la modal s'ouvre ou le mode change
+    watch([showHistoryModal, historyMode], async ([modalOpen, mode]) => {
+      if (modalOpen) {
+        await setHistoryMode(mode)
+      }
+    }, { immediate: true })
+
+    // Fonction pour sauvegarder l'état du Kanban
+    // const saveKanbanState = async () => { // Supprimé
+    //   if (!hasUnsavedChanges.value) { // Supprimé
+    //     showAlert('Aucun changement à sauvegarder', 'info') // Supprimé
+    //     return // Supprimé
+    //   } // Supprimé
+
+    //   isSaving.value = true // Supprimé
+    //   try { // Supprimé
+    //     console.log('💾 Sauvegarde de l\'état du Kanban...') // Supprimé
+        
+    //     // Récupérer toutes les tâches avec leurs nouveaux statuts // Supprimé
+    //     const allTasks = [...todoTasks.value, ...progressTasks.value, ...completedTasks.value] // Supprimé
+        
+    //     // Sauvegarder chaque tâche modifiée // Supprimé
+    //     const savePromises = allTasks.map(async (task) => { // Supprimé
+    //       const taskId = task._id || task.id // Supprimé
+    //       if (taskId) { // Supprimé
+    //         console.log(`💾 Sauvegarde de la tâche ${taskId}: ${task.title} -> ${task.status}`) // Supprimé
+    //         return axios.put(`/api/tasks/${taskId}`, { status: task.status }) // Supprimé
+    //       } // Supprimé
+    //     }) // Supprimé
+        
+    //     await Promise.all(savePromises) // Supprimé
+        
+    //     // Marquer comme sauvegardé // Supprimé
+    //     hasUnsavedChanges.value = false // Supprimé
+    //     showAlert('✅ État du Kanban sauvegardé avec succès !', 'success') // Supprimé
+    //     console.log('✅ Sauvegarde terminée') // Supprimé
+        
+    //     // Recharger les tâches pour s'assurer de la cohérence // Supprimé
+    //     await loadTasks() // Supprimé
+        
+    //   } catch (error) { // Supprimé
+    //     console.error('❌ Erreur lors de la sauvegarde:', error) // Supprimé
+    //     showAlert('❌ Erreur lors de la sauvegarde', 'error') // Supprimé
+    //   } finally { // Supprimé
+    //     isSaving.value = false // Supprimé
+    //   } // Supprimé
+    // } // Supprimé
+
     return {
       tasks,
       loading,
       categories,
       priorities,
       showNewTaskModal,
+      showEditTaskModal,
       alert,
       newTask,
+      editingTask,
       createTask,
       editTask,
+      updateTask,
       formatDate,
       getCategoryIcon,
       getCategoryLabel,
@@ -449,7 +740,17 @@ export default {
       showHistoryModal,
       historyLoading,
       historyData,
-      handleTaskCompletion
+      handleTaskCompletion,
+      todoTasks,
+      completedTasks,
+      onMoveTask,
+      onDragStart,
+      deleteTask,
+      historyMode,
+      setHistoryMode,
+      // hasUnsavedChanges, // Supprimé
+      // isSaving, // Supprimé
+      // saveKanbanState // Supprimé
     }
   }
 }
@@ -871,6 +1172,108 @@ export default {
   color: #6c757d;
   min-width: 30px;
   text-align: right;
+}
+
+.datepicker-input {
+  width: 100%;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  font-size: 1rem;
+  margin-top: 0.3rem;
+  margin-bottom: 0.5rem;
+}
+
+.task-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.btn-sm {
+  padding: 0.3rem 0.7rem;
+  font-size: 0.9rem;
+  border-radius: 8px;
+}
+.btn-danger {
+  background: #e3342f;
+  color: #fff;
+  border: none;
+}
+.btn-danger:hover {
+  background: #cc1f1a;
+}
+
+.mode-selector {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.mode-selector button {
+  padding: 0.5rem 1.2rem;
+  border-radius: 8px;
+  border: 1px solid #667eea;
+  background: #fff;
+  color: #667eea;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.mode-selector button.active, .mode-selector button:hover {
+  background: #667eea;
+  color: #fff;
+}
+.kanban-snapshot {
+  display: flex;
+  gap: 2rem;
+  margin-top: 1rem;
+}
+.kanban-col-snap {
+  background: #f8f9fa;
+  border-radius: 10px;
+  padding: 1rem;
+  min-width: 180px;
+}
+.kanban-col-snap h5 {
+  color: #667eea;
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+.unsaved-changes-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #fff3cd;
+  color: #856404;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  margin-bottom: 1.5rem;
+  border: 1px solid #ffeeba;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.pulse-dot {
+  width: 10px;
+  height: 10px;
+  background-color: #ffc107;
+  border-radius: 50%;
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.9);
+    opacity: 0.7;
+  }
 }
 
 @media (max-width: 768px) {

@@ -13,19 +13,20 @@
 - [x] **Authentification JWT** (`auth.py`)
   - [x] Login/Register endpoints
   - [x] Middleware JWT
-- [ ] **WebSockets temps réel** (`websockets.py`)
-  - [ ] Connection manager
-  - [ ] Broadcast tâches updates
+- [x] **WebSockets temps réel** (`websockets.py`)
+  - [x] Connection manager
+  - [x] Broadcast tâches updates
 - [ ] **Routes étendues** (`routes.py`)
   - [ ] `/api/users/` (CRUD)
   - [ ] `/api/projects/` (CRUD)
   - [ ] `/api/tasks/` (avec assignee)
 
 ### 🎨 **Frontend (HTML/CSS/JS)**
-- [ ] **Interface Kanban** (`index.html`)
-  - [ ] Drag & drop HTML5 vanilla
-  - [ ] Colonnes : À faire, En cours, Terminé
-  - [ ] Cartes tâches avec assignee
+- [x] **Interface Kanban** (`index.html`)
+  - [x] Drag & drop HTML5 vanilla (ou vuedraggable)
+  - [x] Colonnes : À faire, En cours, Terminé
+  - [x] Cartes tâches avec assignee
+  - [x] Datepicker pro (vue3-datepicker)
 - [ ] **Mode sombre** (`styles.css`)
   - [ ] CSS variables pour thèmes
   - [ ] Toggle dark/light
@@ -55,10 +56,9 @@
   - [ ] Gestion drag & drop
 
 ### 📊 **Analytics basiques**
-- [ ] **Statistiques avancées** (`routes.py`)
-  - [ ] Productivité par utilisateur
-  - [ ] Tâches bloquées
-  - [ ] Temps moyen par catégorie
+- [x] **Insights IA avancés** (`routes.py`)
+  - [x] Statistiques dynamiques, recommandations personnalisées
+  - [x] Synchronisation Historique IA (état, journal, analyse)
 - [ ] **Graphiques** (`analytics.js`)
   - [ ] Chart.js pour visualisations
   - [ ] Dashboard temps réel
@@ -184,21 +184,12 @@ SynchTasks/
 
 ## 🚀 **PROCHAINES ÉTAPES IMMÉDIATES**
 
-1. **Analyser l'existant** ✅ (fait)
-2. **Planifier Phase 1** ✅ (fait)
-3. **Modèles utilisateurs** ✅ (fait)
-4. **Authentification JWT** ✅ (fait)
-5. **Tester le système d'auth** 🔄 (en cours)
-6. **Implémenter WebSockets basiques**
-- [ ] Corriger l’erreur 500 sur la récupération des tâches (GET /api/tasks/)
-  - Nettoyer les documents MongoDB pour qu’ils aient tous les champs attendus par le modèle Pydantic
-  - Adapter le code Python pour remplir les champs manquants à None avant de créer les objets TaskInDB
-- [ ] (Optionnel) Script de migration pour corriger les anciennes tâches dans la base
-- [ ] Vérifier l’affichage dynamique des tâches dans l’UI
-- [ ] Continuer l’amélioration UX/UI et la synchro temps réel
+1. **Fiabiliser le drag & drop (edge cases, synchro multi-utilisateur)**
+2. **Actions utilisateur sur tâches (sélection, édition, suppression)**
+3. **Démarrer le module "personne aidante" (backend + frontend)**
 
 ---
 
 > **"Planifie moins. Accomplis plus. Ensemble."** 🎯
 
-*Dernière mise à jour : Phase 1 - Fondations* 
+*Dernière mise à jour : 22/07/2025 - Kanban, WebSocket, Insights IA, Datepicker pro, Historique IA synchronisé* 
