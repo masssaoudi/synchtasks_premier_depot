@@ -1,0 +1,23 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+# 🚀 Pre-commit hook pour ESLint et Prettier
+echo "🔍 Vérification du code avec ESLint..."
+
+# Linter le code
+npm run lint:check
+
+# Si ESLint échoue, arrêter le commit
+if [ $? -ne 0 ]; then
+  echo "❌ ESLint a trouvé des erreurs. Corrigez-les avant de commiter."
+  echo "💡 Utilisez 'npm run lint:fix' pour corriger automatiquement."
+  exit 1
+fi
+
+echo "✅ Code validé par ESLint !"
+echo "🎨 Formatage avec Prettier..."
+
+# Formater le code
+npm run format
+
+echo "✅ Pre-commit hook terminé !" 

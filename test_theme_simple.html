@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Mode Sombre/Clair - SyncTasks</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        
+        .test-section h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        
+        .status {
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .status.warning { background: #fff3cd; color: #856404; }
+        
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 3px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        button:hover {
+            background: #0056b3;
+        }
+        
+        .theme-preview {
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        
+        .dark-mode .theme-preview {
+            background: #2c3e50;
+            color: #ecf0f1;
+            border-color: #34495e;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Test Mode Sombre/Clair - SyncTasks</h1>
+        
+        <div class="test-section">
+            <h3>1. État Initial</h3>
+            <div id="initial-status" class="status">En attente...</div>
+            <div id="initial-log" class="log"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>2. Test Basculement</h3>
+            <button onclick="testThemeToggle()">Tester Basculement</button>
+            <div id="toggle-status" class="status">En attente...</div>
+            <div id="toggle-log" class="log"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>3. Test Store</h3>
+            <button onclick="testStore()">Tester Store</button>
+            <div id="store-status" class="status">En attente...</div>
+            <div id="store-log" class="log"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>4. Test CSS Variables</h3>
+            <button onclick="testCSSVariables()">Tester Variables CSS</button>
+            <div id="css-status" class="status">En attente...</div>
+            <div id="css-log" class="log"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>5. Aperçu Thème</h3>
+            <div class="theme-preview">
+                <h4>Zone de test</h4>
+                <p>Ceci est un texte de test pour voir l'apparence du thème.</p>
+                <button>Bouton de test</button>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>6. Diagnostic Complet</h3>
+            <button onclick="runFullDiagnostic()">Lancer Diagnostic Complet</button>
+            <div id="diagnostic-status" class="status">En attente...</div>
+            <div id="diagnostic-log" class="log"></div>
+        </div>
+    </div>
+
+    <script>
+        // Fonctions utilitaires
+        function log(elementId, message) {
+            const element = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            element.innerHTML += `[${timestamp}] ${message}\n`;
+            element.scrollTop = element.scrollHeight;
+        }
+        
+        function setStatus(elementId, status, message) {
+            const element = document.getElementById(elementId);
+            element.className = `status ${status}`;
+            element.textContent = message;
+        }
+        
+        // Test 1: État initial
+        function testInitialState() {
+            log('initial-log', '🔍 Vérification de l\'état initial...');
+            
+            try {
+                const html = document.documentElement;
+                const classes = html.className;
+                const dataTheme = html.getAttribute('data-theme');
+                const darkMode = localStorage.getItem('dark-mode');
+                const preference = localStorage.getItem('theme-preference');
+                
+                log('initial-log', `Classes HTML: ${classes}`);
+                log('initial-log', `data-theme: ${dataTheme}`);
+                log('initial-log', `localStorage dark-mode: ${darkMode}`);
+                log('initial-log', `localStorage theme-preference: ${preference}`);
+                
+                const hasThemeData = dataTheme || darkMode !== null;
+                
+                if (hasThemeData) {
+                    setStatus('initial-status', 'success', '✅ Données de thème trouvées');
+                } else {
+                    setStatus('initial-status', 'warning', '⚠️ Aucune donnée de thème trouvée');
+                }
+                
+            } catch (error) {
+                log('initial-log', `❌ Erreur: ${error.message}`);
+                setStatus('initial-status', 'error', '❌ Erreur lors de la vérification');
+            }
+        }
+        
+        // Test 2: Basculement du thème
+        function testThemeToggle() {
+            log('toggle-log', '🔄 Test de basculement du thème...');
+            
+            try {
+                const html = document.documentElement;
+                
+                // État avant
+                const classesBefore = html.className;
+                const dataThemeBefore = html.getAttribute('data-theme');
+                const darkModeBefore = localStorage.getItem('dark-mode');
+                
+                log('toggle-log', `Avant - Classes: ${classesBefore}`);
+                log('toggle-log', `Avant - data-theme: ${dataThemeBefore}`);
+                log('toggle-log', `Avant - localStorage: ${darkModeBefore}`);
+                
+                // Simuler le basculement
+                const isDark = html.classList.contains('dark-mode');
+                if (isDark) {
+                    html.classList.remove('dark-mode');
+                    html.setAttribute('data-theme', 'light');
+                } else {
+                    html.classList.add('dark-mode');
+                    html.setAttribute('data-theme', 'dark');
+                }
+                
+                localStorage.setItem('dark-mode', JSON.stringify(!isDark));
+                
+                // État après
+                const classesAfter = html.className;
+                const dataThemeAfter = html.getAttribute('data-theme');
+                const darkModeAfter = localStorage.getItem('dark-mode');
+                
+                log('toggle-log', `Après - Classes: ${classesAfter}`);
+                log('toggle-log', `Après - data-theme: ${dataThemeAfter}`);
+                log('toggle-log', `Après - localStorage: ${darkModeAfter}`);
+                
+                const hasChanged = classesBefore !== classesAfter;
+                
+                if (hasChanged) {
+                    setStatus('toggle-status', 'success', '✅ Basculement réussi');
+                } else {
+                    setStatus('toggle-status', 'error', '❌ Aucun changement détecté');
+                }
+                
+            } catch (error) {
+                log('toggle-log', `❌ Erreur: ${error.message}`);
+                setStatus('toggle-status', 'error', '❌ Erreur lors du basculement');
+            }
+        }
+        
+        // Test 3: Store
+        function testStore() {
+            log('store-log', '🏪 Test du store theme...');
+            
+            try {
+                // Essayer d'accéder au store via l'application Vue
+                const app = document.querySelector('#app');
+                if (app && app.__vue_app__) {
+                    log('store-log', '✅ Application Vue trouvée');
+                    
+                    const pinia = app.__vue_app__.config.globalProperties.$pinia;
+                    if (pinia) {
+                        log('store-log', '✅ Pinia trouvé');
+                        
+                        const themeStore = pinia._s.get('theme');
+                        if (themeStore) {
+                            log('store-log', '✅ Store theme trouvé');
+                            log('store-log', `isDarkMode: ${themeStore.isDarkMode}`);
+                            log('store-log', `themePreference: ${themeStore.themePreference}`);
+                            
+                            setStatus('store-status', 'success', '✅ Store accessible');
+                        } else {
+                            log('store-log', '❌ Store theme non trouvé');
+                            setStatus('store-status', 'error', '❌ Store theme non trouvé');
+                        }
+                    } else {
+                        log('store-log', '❌ Pinia non trouvé');
+                        setStatus('store-status', 'error', '❌ Pinia non trouvé');
+                    }
+                } else {
+                    log('store-log', '❌ Application Vue non trouvée');
+                    setStatus('store-status', 'error', '❌ Application Vue non trouvée');
+                }
+                
+            } catch (error) {
+                log('store-log', `❌ Erreur: ${error.message}`);
+                setStatus('store-status', 'error', '❌ Erreur lors du test store');
+            }
+        }
+        
+        // Test 4: Variables CSS
+        function testCSSVariables() {
+            log('css-log', '🎨 Test des variables CSS...');
+            
+            try {
+                const html = document.documentElement;
+                const computedStyle = getComputedStyle(html);
+                
+                const variables = [
+                    '--bg-primary',
+                    '--text-primary',
+                    '--border-color',
+                    '--accent-color',
+                    '--shadow-color'
+                ];
+                
+                let foundVariables = 0;
+                
+                variables.forEach(variable => {
+                    const value = computedStyle.getPropertyValue(variable);
+                    if (value && value.trim() !== '') {
+                        log('css-log', `✅ ${variable}: ${value}`);
+                        foundVariables++;
+                    } else {
+                        log('css-log', `❌ ${variable}: non définie`);
+                    }
+                });
+                
+                if (foundVariables > 0) {
+                    setStatus('css-status', 'success', `✅ ${foundVariables} variables CSS trouvées`);
+                } else {
+                    setStatus('css-status', 'error', '❌ Aucune variable CSS trouvée');
+                }
+                
+            } catch (error) {
+                log('css-log', `❌ Erreur: ${error.message}`);
+                setStatus('css-status', 'error', '❌ Erreur lors du test CSS');
+            }
+        }
+        
+        // Test 5: Diagnostic complet
+        function runFullDiagnostic() {
+            log('diagnostic-log', '🚀 Lancement du diagnostic complet...');
+            
+            // Réinitialiser les logs
+            document.getElementById('diagnostic-log').innerHTML = '';
+            
+            try {
+                // Test 1: État initial
+                log('diagnostic-log', '📋 1. État initial...');
+                const html = document.documentElement;
+                const initialState = {
+                    classes: html.className,
+                    dataTheme: html.getAttribute('data-theme'),
+                    localStorage: {
+                        darkMode: localStorage.getItem('dark-mode'),
+                        preference: localStorage.getItem('theme-preference')
+                    }
+                };
+                log('diagnostic-log', `État initial: ${JSON.stringify(initialState, null, 2)}`);
+                
+                // Test 2: Basculement
+                log('diagnostic-log', '📋 2. Test basculement...');
+                const isDarkBefore = html.classList.contains('dark-mode');
+                html.classList.toggle('dark-mode');
+                html.setAttribute('data-theme', html.classList.contains('dark-mode') ? 'dark' : 'light');
+                localStorage.setItem('dark-mode', JSON.stringify(html.classList.contains('dark-mode')));
+                
+                const finalState = {
+                    classes: html.className,
+                    dataTheme: html.getAttribute('data-theme'),
+                    localStorage: {
+                        darkMode: localStorage.getItem('dark-mode'),
+                        preference: localStorage.getItem('theme-preference')
+                    }
+                };
+                log('diagnostic-log', `État final: ${JSON.stringify(finalState, null, 2)}`);
+                
+                // Test 3: Variables CSS
+                log('diagnostic-log', '📋 3. Variables CSS...');
+                const computedStyle = getComputedStyle(html);
+                const cssVars = {
+                    bgPrimary: computedStyle.getPropertyValue('--bg-primary'),
+                    textPrimary: computedStyle.getPropertyValue('--text-primary'),
+                    borderColor: computedStyle.getPropertyValue('--border-color')
+                };
+                log('diagnostic-log', `Variables CSS: ${JSON.stringify(cssVars, null, 2)}`);
+                
+                // Test 4: Application Vue
+                log('diagnostic-log', '📋 4. Application Vue...');
+                const app = document.querySelector('#app');
+                if (app) {
+                    log('diagnostic-log', '✅ Élément #app trouvé');
+                    if (app.__vue_app__) {
+                        log('diagnostic-log', '✅ Application Vue initialisée');
+                    } else {
+                        log('diagnostic-log', '❌ Application Vue non initialisée');
+                    }
+                } else {
+                    log('diagnostic-log', '❌ Élément #app non trouvé');
+                }
+                
+                // Résumé
+                const hasChanged = initialState.classes !== finalState.classes;
+                if (hasChanged) {
+                    setStatus('diagnostic-status', 'success', '✅ Diagnostic réussi - Thème fonctionnel');
+                } else {
+                    setStatus('diagnostic-status', 'error', '❌ Diagnostic échoué - Thème non fonctionnel');
+                }
+                
+            } catch (error) {
+                log('diagnostic-log', `❌ Erreur diagnostic: ${error.message}`);
+                setStatus('diagnostic-status', 'error', '❌ Erreur lors du diagnostic');
+            }
+        }
+        
+        // Initialisation
+        window.onload = function() {
+            testInitialState();
+        };
+    </script>
+</body>
+</html> 

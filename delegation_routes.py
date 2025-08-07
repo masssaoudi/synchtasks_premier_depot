@@ -88,4 +88,6 @@ async def check_aidant_email(email: str):
 async def get_my_delegations(current_user=Depends(get_current_user)):
     """Récupère les délégations où l'utilisateur connecté est aidant."""
     delegations = await delegation_service.get_delegations_for_aidant(current_user.id)
-    return delegations 
+    # Convertir les documents MongoDB en modèles Pydantic
+    from models import DelegationInDB
+    return [DelegationInDB(**{**delegation, "_id": str(delegation["_id"])}) for delegation in delegations] 

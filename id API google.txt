@@ -1,0 +1,2 @@
+id client:1081643213169-59nbnj883tpv3ahp9q47fd9vv92gbs04.apps.googleusercontent.com
+code secret api google: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

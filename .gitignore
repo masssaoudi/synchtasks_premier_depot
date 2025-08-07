@@ -8,6 +8,15 @@ __pycache__/
 # Environnement
 .env
 .env.*
+.env.local
+.env.production
+.env.staging
+
+# Clés et secrets
+*.key
+*.pem
+secrets/
+config/secrets.json
 
 # Node.js / Vue.js
 node_modules/

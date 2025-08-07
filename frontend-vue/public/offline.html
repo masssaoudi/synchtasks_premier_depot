@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SyncTasks - Hors ligne</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+      }
+
+      .offline-container {
+        text-align: center;
+        padding: 2rem;
+        max-width: 500px;
+      }
+
+      .offline-icon {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.1);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+
+      h1 {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+      }
+
+      p {
+        font-size: 1.1rem;
+        margin-bottom: 2rem;
+        opacity: 0.9;
+        line-height: 1.6;
+      }
+
+      .retry-btn {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border: 2px solid white;
+        padding: 1rem 2rem;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+      }
+
+      .retry-btn:hover {
+        background: white;
+        color: #667eea;
+        transform: translateY(-2px);
+      }
+
+      .status {
+        margin-top: 2rem;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        font-size: 0.9rem;
+      }
+
+      @media (max-width: 480px) {
+        .offline-container {
+          padding: 1rem;
+        }
+
+        h1 {
+          font-size: 1.5rem;
+        }
+
+        p {
+          font-size: 1rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="offline-container">
+      <div class="offline-icon">📡</div>
+      <h1>Vous êtes hors ligne</h1>
+      <p>
+        SyncTasks nécessite une connexion internet pour fonctionner. Vérifiez
+        votre connexion et réessayez.
+      </p>
+      <button class="retry-btn" onclick="window.location.reload()">
+        Réessayer
+      </button>
+      <div class="status">
+        <p>🔄 Tentative de reconnexion automatique...</p>
+      </div>
+    </div>
+
+    <script>
+      // Vérification automatique de la connexion
+      function checkConnection() {
+        if (navigator.onLine) {
+          window.location.reload();
+        }
+      }
+
+      // Vérifier toutes les 5 secondes
+      setInterval(checkConnection, 5000);
+
+      // Écouter les changements de connexion
+      window.addEventListener('online', () => {
+        window.location.reload();
+      });
+
+      // Afficher le statut de connexion
+      function updateStatus() {
+        const status = document.querySelector('.status p');
+        if (navigator.onLine) {
+          status.textContent = '✅ Connexion rétablie !';
+          setTimeout(() => window.location.reload(), 1000);
+        } else {
+          status.textContent = '🔄 Tentative de reconnexion automatique...';
+        }
+      }
+
+      // Mettre à jour le statut toutes les secondes
+      setInterval(updateStatus, 1000);
+    </script>
+  </body>
+</html>

@@ -3,9 +3,12 @@ FROM node:20-alpine as builder
 
 WORKDIR /app
 
-# Copier les fichiers de dépendances
+# Copier les fichiers de dépendances et node_modules
 COPY package*.json ./
-RUN npm ci --only=production
+COPY node_modules ./node_modules
+
+# Réinstaller esbuild pour Linux (résout les problèmes de plateforme)
+RUN npm rebuild esbuild
 
 # Copier le code source
 COPY . .

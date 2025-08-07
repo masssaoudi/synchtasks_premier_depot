@@ -34,10 +34,15 @@ class TaskStatusEnum(str, Enum):
 # MODÈLES UTILISATEURS
 # ============================================================================
 
+class UserRoleEnum(str, Enum):
+    user = "user"        # Utilisateur principal
+    pa = "pa"           # Personne aidante
+
 class UserBase(BaseModel):
     username: str = Field(..., min_length=2, max_length=50, description="Nom d'utilisateur")
     email: EmailStr = Field(..., description="Email de l'utilisateur")
     full_name: Optional[str] = Field(None, max_length=100, description="Nom complet")
+    role: UserRoleEnum = Field(default=UserRoleEnum.user, description="Rôle de l'utilisateur")
 
 class UserCreate(UserBase):
     password: str = Field(..., min_length=6, description="Mot de passe")
@@ -52,6 +57,8 @@ class UserInDB(UserBase):
     id: str = Field(..., alias="_id")
     hashed_password: str = Field(..., description="Mot de passe hashé")
     is_active: bool = Field(default=True, description="Utilisateur actif")
+    phone: Optional[str] = Field(None, description="Numéro de téléphone pour OTP")
+    delegations: List[str] = Field(default=[], description="Liste des IDs des utilisateurs aidés")
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -196,7 +203,7 @@ class TokenData(BaseModel):
     username: Optional[str] = None
 
 class LoginRequest(BaseModel):
-    username: str = Field(..., min_length=2, max_length=50, description="Nom d'utilisateur")
+    username: str = Field(..., min_length=2, max_length=50, description="Nom d'utilisateur ou email")
     password: str = Field(..., min_length=6, description="Mot de passe")
 
 # ============================================================================
@@ -268,6 +275,27 @@ class DelegationInDB(BaseModel):
             }
         }
     } 
+
+# ============================================================================
+# MODÈLES OTP
+# ============================================================================
+
+class OTPRequest(BaseModel):
+    phone: str = Field(..., description="Numéro de téléphone pour recevoir l'OTP")
+
+class OTPVerify(BaseModel):
+    phone: str = Field(..., description="Numéro de téléphone")
+    code: str = Field(..., min_length=6, max_length=6, description="Code OTP à 6 chiffres")
+
+class OTPInDB(BaseModel):
+    phone: str = Field(..., description="Numéro de téléphone")
+    code: str = Field(..., description="Code OTP")
+    expires_at: datetime = Field(..., description="Date d'expiration")
+    used: bool = Field(default=False, description="Code déjà utilisé")
+
+# ============================================================================
+# MODÈLES DÉLÉGATION
+# ============================================================================
 
 class DelegationCreate(BaseModel):
     nom: str

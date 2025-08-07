@@ -1,0 +1,57 @@
+
+FLUX DE NAVIGATION SYNCTASKS - UTILISATEUR LAMBDA
+==================================================
+
+[🏠 Accueil] 
+    |
+    +---> [🔐 Connexion] ---> [🧭 Sélection Segment] ---> [👋 Bienvenue]
+    |                                                           |
+    +---> [🧭 Sélection Segment] (Inscription directe)         |
+                                                               |
+                                                               v
+[📊 Dashboard] <--- [👋 Bienvenue] <--- [🧭 Sélection Segment]
+    |
+    v
+[📋 Tâches] ---> [📁 Segment Dashboard] ---> [👨‍👩‍👧‍👦 Particuliers Dashboard]
+    |
+    +---> [🤖 Chat IA]
+    +---> [🧠 Historique IA]
+    +---> [➕ Nouvelle tâche]
+
+FLUX PERSONNE AIDANT
+====================
+
+[🧑‍⚕️ Personne Aidant] ---> [📝 PA Inscription] ---> [🤝 PA Dashboard]
+
+SEGMENTS DISPONIBLES
+====================
+
+👨‍👩‍👧‍👦 Particuliers    → /dashboard/particuliers
+🎓 Étudiants          → /segment-dashboard
+🏥 Médical            → /segment-dashboard
+🧠 Mémoire            → /segment-dashboard
+💼 Professionnels     → /segment-dashboard
+🏢 Entreprises        → /segment-dashboard
+
+FONCTIONNALITÉS PAR SEGMENT
+============================
+
+📋 Tâches (Tous segments)
+├── ✅ Terminer une tâche
+├── 🔄 Remettre en cours
+├── ✏️ Éditer une tâche
+├── 🗑️ Supprimer une tâche
+├── 🧠 Historique IA
+├── ➕ Nouvelle tâche
+└── 🤖 Chat IA
+
+📁 Segment Dashboard
+├── 💬 Chat IA
+├── 📊 Historique
+└── 💡 Insights
+
+👨‍👩‍👧‍👦 Particuliers Dashboard
+├── 📅 Planning
+├── 🏠 Maison
+├── 🛒 Shopping
+└── 💪 Wellness

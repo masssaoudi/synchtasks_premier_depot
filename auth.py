@@ -138,6 +138,7 @@ async def login_user(db: AsyncIOMotorClient, username: str, password: str) -> Op
             username=user.username,
             email=user.email,
             full_name=user.full_name,
+            role=user.role,
             is_active=user.is_active,
             created_at=user.created_at
         )
@@ -179,6 +180,7 @@ async def get_current_active_user(current_user: UserInDB = Depends(get_current_u
         username=current_user.username,
         email=current_user.email,
         full_name=current_user.full_name,
+        role=current_user.role,
         is_active=current_user.is_active,
         created_at=current_user.created_at
     ) 

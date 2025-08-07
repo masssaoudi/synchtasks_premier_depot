@@ -1,0 +1,45 @@
+✅ Template FastAPI complet : JWT + OTP + WebSocket pour SyncTasks
+from fastapi import FastAPI, Depends, HTTPException, WebSocket, WebSocketDisconnect, Request from fastapi.middleware.cors import CORSMiddleware from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm from pydantic import BaseModel, EmailStr from jose import JWTError, jwt from datetime import datetime, timedelta from typing import Optional, List from pymongo import MongoClient import random, string, asyncio
+
+--- Config ---
+SECRET_KEY = "ton_secret_jwt" ALGORITHM = "HS256" ACCESS_TOKEN_EXPIRE_MINUTES = 60
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
+
+app = FastAPI()
+
+app.add_middleware( CORSMiddleware, allow_origins=[""], allow_credentials=True, allow_methods=[""], allow_headers=["*"], )
+
+--- DB Mongo ---
+client = MongoClient("mongodb://localhost:27017") db = client["synchtasks_db"] users = db["users"] otps = db["otp_codes"]
+
+--- Pydantic Models ---
+class User(BaseModel): email: EmailStr phone: str password: str role: str = "user" # ou "pa"
+
+class Token(BaseModel): access_token: str token_type: str
+
+class OTPRequest(BaseModel): phone: str
+
+class OTPVerify(BaseModel): phone: str code: str
+
+--- Utils ---
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None): to_encode = data.copy() expire = datetime.utcnow() + (expires_delta or timedelta(minutes=15)) to_encode.update({"exp": expire}) return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+def verify_token(token: str): try: payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM]) return payload except JWTError: raise HTTPException(status_code=401, detail="Token invalide")
+
+async def get_current_user(token: str = Depends(oauth2_scheme)): payload = verify_token(token) user = users.find_one({"email": payload["sub"]}) if not user: raise HTTPException(status_code=404, detail="Utilisateur non trouvé") return user
+
+--- Auth Routes ---
+@app.post("/auth/register") def register(user: User): if users.find_one({"email": user.email}): raise HTTPException(status_code=400, detail="Email déjà utilisé") users.insert_one(user.dict()) return {"message": "Inscription réussie"}
+
+@app.post("/auth/token", response_model=Token) def login(form_data: OAuth2PasswordRequestForm = Depends()): user = users.find_one({"email": form_data.username}) if not user or user["password"] != form_data.password: raise HTTPException(status_code=401, detail="Identifiants invalides") token = create_access_token({"sub": user["email"]}) return {"access_token": token, "token_type": "bearer"}
+
+--- OTP System ---
+@app.post("/auth/send-otp") def send_otp(data: OTPRequest): code = ''.join(random.choices(string.digits, k=6)) otps.delete_many({"phone": data.phone}) # cleanup otps.insert_one({"phone": data.phone, "code": code, "expires_at": datetime.utcnow() + timedelta(minutes=5)}) print(f"✅ Code OTP envoyé : {code}") return {"message": "OTP envoyé (simulé console)"}
+
+@app.post("/auth/verify-otp") def verify_otp(data: OTPVerify): otp = otps.find_one({"phone": data.phone, "code": data.code}) if not otp or datetime.utcnow() > otp["expires_at"]: raise HTTPException(status_code=401, detail="Code OTP invalide ou expiré") return {"message": "Accès autorisé au Kanban"}
+
+--- WebSocket Kanban ---
+connections = {}
+
+@app.websocket("/ws

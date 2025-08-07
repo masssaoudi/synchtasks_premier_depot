@@ -1,0 +1,141 @@
+
+🧭 SCHÉMA DE NAVIGATION SYNCTASKS (LOCAL)
+═══════════════════════════════════════════════════════════════════════════════
+
+🏠 ACCUEIL (/landing)
+    │
+    ├── 🔐 CONNEXION (/login)
+    │   └── 🧭 SÉLECTION SEGMENT (/segment-selection)
+    │       └── 👋 BIENVENUE (/welcome)
+    │           └── 📊 DASHBOARD (/dashboard)
+    │               └── 📋 TÂCHES (/tasks)
+    │                   └── 📁 SEGMENT DASHBOARD (/segment-dashboard)
+    │                       └── 👨‍👩‍👧‍👦 PARTICULIERS DASHBOARD (/dashboard/particuliers)
+    │
+    └── 🧭 SÉLECTION SEGMENT (/segment-selection) [Inscription directe]
+        └── 👋 BIENVENUE (/welcome)
+            └── 📊 DASHBOARD (/dashboard)
+                └── 📋 TÂCHES (/tasks)
+
+🤝 PARCOURS PERSONNE AIDANT
+═══════════════════════════════════════════════════════════════════════════════
+
+🧑‍⚕️ PERSONNE AIDANT (/personne-aidant)
+    └── 📝 PA INSCRIPTION (/pa-inscription)
+        └── 🤝 PA DASHBOARD (/pa-dashboard)
+
+🛡️ PROTECTION DES ROUTES
+═══════════════════════════════════════════════════════════════════════════════
+
+📋 ROUTES PUBLIQUES (pas d'authentification requise)
+├── 🏠 Landing (/landing)
+├── 🔐 Login (/login)
+├── 🧭 Segment Selection (/segment-selection)
+├── 🧑‍⚕️ PA (/personne-aidant)
+└── 📝 PA Inscription (/pa-inscription)
+
+🔒 ROUTES PROTÉGÉES (authentification requise)
+├── 👋 Welcome (/welcome)
+├── 📊 Dashboard (/dashboard)
+├── 📋 Tasks (/tasks)
+├── 📁 Segment Dashboard (/segment-dashboard)
+├── 👨‍👩‍👧‍👦 Particuliers Dashboard (/dashboard/particuliers)
+└── 🤝 PA Dashboard (/pa-dashboard)
+
+🔄 REDIRECTIONS AUTOMATIQUES
+═══════════════════════════════════════════════════════════════════════════════
+
+👤 Utilisateur Non Connecté
+├── Accès à route protégée → /login
+└── Page d'accueil (/) → /tasks (redirection)
+
+✅ Utilisateur Connecté
+├── Accès à /login → /tasks
+└── Connexion réussie → /segment-selection
+
+📱 NAVIGATION MOBILE
+═══════════════════════════════════════════════════════════════════════════════
+
+🖥️  Desktop : Logo + Boutons + Menu utilisateur
+📱  Mobile : Icônes seulement + Menu hamburger
+
+🎯 POINTS D'ENTRÉE PRINCIPAUX
+═══════════════════════════════════════════════════════════════════════════════
+
+1️⃣ Nouvel Utilisateur
+   /landing → /segment-selection → /welcome → /dashboard → /tasks
+
+2️⃣ Utilisateur Existant
+   /landing → /login → /segment-selection → /welcome → /dashboard → /tasks
+
+3️⃣ Utilisateur Connecté (Accès Direct)
+   / → /tasks (redirection automatique)
+
+4️⃣ Personne Aidant
+   /personne-aidant → /pa-inscription → /pa-dashboard
+
+🔧 FICHIERS IMPLÉMENTÉS
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ Router Principal
+   frontend-vue/src/router/index.js
+
+✅ Layout Principal
+   frontend-vue/src/App.vue
+
+✅ Barre de Navigation
+   frontend-vue/src/components/NavigationBar.vue
+
+✅ Pages Principales
+   ├── frontend-vue/src/views/HomeView.vue
+   ├── frontend-vue/src/views/WelcomeView.vue
+   ├── frontend-vue/src/views/DashboardView.vue
+   ├── frontend-vue/src/views/TasksView.vue
+   ├── frontend-vue/src/views/SegmentSelectionView.vue
+   ├── frontend-vue/src/views/SegmentDashboardView.vue
+   ├── frontend-vue/src/views/dashboards/ParticuliersDashboard.vue
+   ├── frontend-vue/src/views/PersonneAidantView.vue
+   ├── frontend-vue/src/views/PAInscriptionView.vue
+   └── frontend-vue/src/views/PADashboardView.vue
+
+🚀 AVANTAGES DE CE SCHÉMA
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ Navigation intuitive avec flux logique
+✅ Séparation claire entre utilisateurs standards et PA
+✅ Protection des routes appropriée
+✅ Responsive design pour mobile
+✅ Modules spécialisés par segment
+✅ Redirections automatiques intelligentes
+
+🎯 OPTIMISATIONS POSSIBLES
+═══════════════════════════════════════════════════════════════════════════════
+
+🔄 Breadcrumbs pour navigation
+🔄 Historique de navigation plus détaillé
+🔄 Animations de transition entre pages
+🔄 Mode sombre/clair adaptatif
+🔄 Notifications push pour tâches urgentes
+
+📋 CHECKLIST D'IMPLÉMENTATION
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ Déjà Implémenté
+├── Routes principales configurées
+├── Guards de navigation
+├── Composants de navigation
+├── Pages principales
+├── Dashboard segmenté
+├── Gestion des tâches
+└── Système d'authentification
+
+🔄 À Optimiser
+├── Améliorer les transitions entre pages
+├── Ajouter des breadcrumbs
+├── Optimiser la navigation mobile
+├── Implémenter les dashboards manquants
+└── Ajouter des animations de chargement
+
+═══════════════════════════════════════════════════════════════════════════════
+🎯 CONCLUSION : Votre application est prête pour une navigation fluide ! 🚀
+═══════════════════════════════════════════════════════════════════════════════
