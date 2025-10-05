@@ -1,4 +1,4 @@
-version: "3.9"
+version: '3.9'
 
 services:
   backend:
@@ -10,9 +10,17 @@ services:
       - .env
     environment:
       - MONGODB_URL=mongodb://mongo:27017/synchtasks_db
-      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
+      - SECRET_KEY=${SECRET_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - WEBSOCKET_ENABLED=true
+      - ENVIRONMENT=docker
+      - API_PORT=8000
+      - WS_PORT=8000
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI}
     ports:
-      - "8000:8000"
+      - '8000:8000'
     depends_on:
       mongo:
         condition: service_healthy
@@ -27,8 +35,13 @@ services:
       context: ./frontend-vue
       dockerfile: Dockerfile
     container_name: synchtasks-frontend
+    environment:
+      - VITE_API_URL=http://localhost:8000/api
+      - VITE_WS_URL=ws://localhost:8000/api/ws
+      - VITE_APP_TITLE=SyncTasks
+      - VITE_ENABLE_WEBSOCKET=true
     ports:
-      - "80:80"
+      - '3000:80'
     depends_on:
       - backend
     restart: unless-stopped
@@ -40,14 +53,14 @@ services:
     container_name: synchtasks-mongo
     restart: unless-stopped
     ports:
-      - "27017:27017"
+      - '27017:27017'
     environment:
       - MONGO_INITDB_DATABASE=synchtasks_db
     volumes:
       - mongo_data:/data/db
       - ./mongo-init:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      test: ['CMD', 'mongosh', '--eval', "db.adminCommand('ping')"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -61,12 +74,13 @@ services:
     container_name: synchtasks-mongo-express
     restart: unless-stopped
     ports:
-      - "8081:8081"
+      - '8081:8081'
     environment:
       - ME_CONFIG_MONGODB_SERVER=mongo
       - ME_CONFIG_MONGODB_PORT=27017
       - ME_CONFIG_BASICAUTH_USERNAME=admin
       - ME_CONFIG_BASICAUTH_PASSWORD=admin123
+      - ME_CONFIG_MONGODB_ENABLE_ADMIN=true
     depends_on:
       mongo:
         condition: service_healthy
@@ -78,4 +92,4 @@ volumes:
 
 networks:
   synchtasks-network:
-    driver: bridge 
+    driver: bridge

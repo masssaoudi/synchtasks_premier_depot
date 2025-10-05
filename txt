@@ -1,0 +1,56 @@
+Donc pour répondre clairement :
+
+❌ Docker ne nettoie pas ton code automatiquement
+Il ne supprime aucun fichier mort.
+Il ne corrige aucune indentation.
+Il ne reformate pas ton .vue, .py, .js, .json, etc.
+Il ne te dit pas si ton code est moche ou redondant.
+Docker emballe juste ton code tel quel et le fait tourner dans un conteneur.
+
+✅ Ce que toi tu peux faire pour nettoyer ton code au fur et à mesure (et t’éviter l’usine à gaz) :
+1. Utilise un formateur automatique
+Python (FastAPI) :
+Installe black :
+pip install black
+Puis :
+black .
+JavaScript / Vue.js :
+Installe prettier :
+npm install --save-dev prettier
+Ajoute un script :
+"scripts": {
+  "format": "prettier --write ."
+}
+Et lance :
+npm run format
+2. Ajoute un linter
+Python :
+flake8 ou pylint pour détecter erreurs / mauvaises pratiques
+pip install flake8
+flake8 .
+Vue.js :
+eslint :
+npm install --save-dev eslint
+npx eslint --init
+npx eslint --fix .
+3. Active les extensions dans ton éditeur (VS Code par exemple)
+Black Formatter pour Python
+Prettier pour JS/Vue
+ESLint, Pylance, Vetur, etc.
+Tu peux même configurer le formatage à chaque sauvegarde.
+
+4. Crée un script Docker dédié au nettoyage (optionnel)
+Si tu veux intégrer un peu d’automatisation dans ton Dockerfile ou un script shell que tu lances avant chaque build, tu peux faire :
+
+RUN pip install black flake8 && \
+    black . && \
+    flake8 .
+Ou dans docker-compose.yml, ajoute un service formatter.
+
+🧠 En résumé :
+Action	Automatique par Docker	À faire toi-même
+Nettoyage du code	❌	✅
+Formatage	❌	✅ avec Black / Prettier
+Suppression des fichiers morts	❌	✅ manuellement
+Correction d’erreurs	❌	✅ avec linter
+Refactoring intelligent	❌	✅ avec amour

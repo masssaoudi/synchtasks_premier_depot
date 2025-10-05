@@ -1,160 +1,228 @@
+/**
+ * Service WebSocket simple et propre pour SyncTasks
+ * Version épurée sans complexité inutile
+ */
+
 class WebSocketService {
   constructor() {
-    this.ws = null;
-    this.isConnected = false;
+    this.socket = null;
+    this.userId = null;
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 5;
-    this.reconnectDelay = 1000; // 1 seconde
-    this.listeners = new Map();
-    this.baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    this.reconnectDelay = 1000;
+    this.isConnecting = false;
+    this.messageHandlers = new Map();
+    this.connectionHandlers = new Map();
   }
 
-  // Connexion au WebSocket
-  connect(userId = null) {
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      console.log('🔌 WebSocket déjà connecté');
+  // Initialiser la connexion WebSocket
+  async connect(userId) {
+    if (this.isConnecting) {
       return;
     }
 
-    const wsUrl = this.baseUrl.replace('http', 'ws') + '/ws';
-    console.log('🔌 Tentative de connexion WebSocket:', wsUrl);
+    this.userId = userId;
+    this.isConnecting = true;
 
     try {
-      this.ws = new WebSocket(wsUrl);
-      
-      this.ws.onopen = () => {
+      // URL simple sans token pour commencer
+      const wsUrl = `ws://localhost:8000/api/ws/${userId}`;
+      console.log('🔌 Connexion WebSocket simple:', wsUrl);
+      this.socket = new WebSocket(wsUrl);
+
+      this.socket.onopen = () => {
         console.log('✅ WebSocket connecté');
-        this.isConnected = true;
+        this.isConnecting = false;
         this.reconnectAttempts = 0;
-        
-        // Envoyer l'ID utilisateur si fourni
-        if (userId) {
-          this.send({ type: 'auth', user_id: userId });
-        }
+        this.notifyConnectionHandlers('connected');
       };
 
-      this.ws.onmessage = (event) => {
+      this.socket.onmessage = event => {
         try {
           const data = JSON.parse(event.data);
-          console.log('📨 Message WebSocket reçu:', data);
           this.handleMessage(data);
         } catch (error) {
           console.error('❌ Erreur parsing message WebSocket:', error);
         }
       };
 
-      this.ws.onclose = (event) => {
+      this.socket.onclose = event => {
         console.log('🔌 WebSocket déconnecté:', event.code, event.reason);
-        this.isConnected = false;
-        this.handleReconnect();
+        this.isConnecting = false;
+        this.notifyConnectionHandlers('disconnected');
+
+        // Tentative de reconnexion automatique
+        if (this.reconnectAttempts < this.maxReconnectAttempts) {
+          this.reconnectAttempts++;
+          console.log(
+            `🔄 Tentative de reconnexion ${this.reconnectAttempts}/${this.maxReconnectAttempts}`
+          );
+          setTimeout(
+            () => this.connect(this.userId),
+            this.reconnectDelay * this.reconnectAttempts
+          );
+        } else {
+          console.error(
+            '❌ Nombre maximum de tentatives de reconnexion atteint'
+          );
+          this.notifyConnectionHandlers('failed');
+        }
       };
 
-      this.ws.onerror = (error) => {
+      this.socket.onerror = error => {
         console.error('❌ Erreur WebSocket:', error);
-        this.isConnected = false;
+        this.isConnecting = false;
+        this.notifyConnectionHandlers('error');
       };
-
     } catch (error) {
-      console.error('❌ Erreur création WebSocket:', error);
+      console.error('❌ Erreur lors de la connexion WebSocket:', error);
+      this.isConnecting = false;
+      this.notifyConnectionHandlers('error');
     }
   }
 
-  // Gestion de la reconnexion automatique
-  handleReconnect() {
-    if (this.reconnectAttempts < this.maxReconnectAttempts) {
-      this.reconnectAttempts++;
-      console.log(`🔄 Tentative de reconnexion ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
-      
-      setTimeout(() => {
-        this.connect();
-      }, this.reconnectDelay * this.reconnectAttempts);
-    } else {
-      console.error('❌ Nombre maximum de tentatives de reconnexion atteint');
-    }
-  }
-
-  // Envoi de message
-  send(message) {
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      try {
-        this.ws.send(JSON.stringify(message));
-        console.log('📤 Message WebSocket envoyé:', message);
-      } catch (error) {
-        console.error('❌ Erreur envoi message WebSocket:', error);
-      }
-    } else {
-      console.warn('⚠️ WebSocket non connecté, message ignoré:', message);
-    }
-  }
-
-  // Gestion des messages reçus
-  handleMessage(data) {
-    const { type, action, task, task_id } = data;
-
-    switch (type) {
-      case 'connection':
-        console.log('🔌 Message de connexion:', data.message);
-        break;
-
-      case 'task_update':
-        this.handleTaskUpdate(action, task, task_id);
-        break;
-
-      default:
-        console.log('📨 Message non reconnu:', data);
-    }
-  }
-
-  // Gestion des mises à jour de tâches
-  handleTaskUpdate(action, task, task_id) {
-    console.log(`🔄 Mise à jour tâche: ${action}`, task || task_id);
-    
-    // Émettre un événement personnalisé pour notifier les composants
-    const event = new CustomEvent('taskUpdate', {
-      detail: { action, task, task_id }
-    });
-    window.dispatchEvent(event);
-  }
-
-  // Ajouter un listener pour les mises à jour
-  onTaskUpdate(callback) {
-    const handler = (event) => {
-      callback(event.detail);
-    };
-    
-    window.addEventListener('taskUpdate', handler);
-    
-    // Retourner une fonction pour supprimer le listener
-    return () => {
-      window.removeEventListener('taskUpdate', handler);
-    };
-  }
-
-  // Déconnexion
+  // Déconnecter
   disconnect() {
-    if (this.ws) {
-      this.ws.close();
-      this.ws = null;
-      this.isConnected = false;
-      console.log('🔌 WebSocket déconnecté manuellement');
+    if (this.socket) {
+      this.socket.close();
+      this.socket = null;
+    }
+    this.isConnecting = false;
+    this.reconnectAttempts = 0;
+  }
+
+  // Envoyer un message
+  send(message) {
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+      this.socket.send(JSON.stringify(message));
+      console.log('📤 Message WebSocket envoyé:', message.type);
+    } else {
+      console.warn('⚠️ WebSocket non connecté, message non envoyé:', message);
     }
   }
 
-  // Vérifier l'état de la connexion
-  getConnectionState() {
-    if (!this.ws) return 'disconnected';
-    
-    switch (this.ws.readyState) {
-      case WebSocket.CONNECTING: return 'connecting';
-      case WebSocket.OPEN: return 'connected';
-      case WebSocket.CLOSING: return 'closing';
-      case WebSocket.CLOSED: return 'closed';
-      default: return 'unknown';
+  // Gérer les messages reçus
+  handleMessage(data) {
+    console.log('📥 Message WebSocket reçu:', data.type);
+
+    // Notifier les handlers spécifiques
+    const handlers = this.messageHandlers.get(data.type) || [];
+    handlers.forEach(handler => {
+      try {
+        handler(data);
+      } catch (error) {
+        console.error(`❌ Erreur handler ${data.type}:`, error);
+      }
+    });
+  }
+
+  // Enregistrer un handler pour un type de message
+  onMessage(type, handler) {
+    if (!this.messageHandlers.has(type)) {
+      this.messageHandlers.set(type, []);
+    }
+    this.messageHandlers.get(type).push(handler);
+  }
+
+  // Enregistrer un handler pour les événements de connexion
+  onConnection(event, handler) {
+    if (!this.connectionHandlers.has(event)) {
+      this.connectionHandlers.set(event, []);
+    }
+    this.connectionHandlers.get(event).push(handler);
+  }
+
+  // Notifier les handlers de connexion
+  notifyConnectionHandlers(event) {
+    const handlers = this.connectionHandlers.get(event) || [];
+    handlers.forEach(handler => {
+      try {
+        handler();
+      } catch (error) {
+        console.error(`❌ Erreur connection handler ${event}:`, error);
+      }
+    });
+  }
+
+  // Méthodes spécifiques pour SyncTasks
+
+  // Rejoindre une room
+  joinRoom(roomId) {
+    this.send({
+      type: 'join_room',
+      room_id: roomId,
+    });
+  }
+
+  // Quitter une room
+  leaveRoom(roomId) {
+    this.send({
+      type: 'leave_room',
+      room_id: roomId,
+    });
+  }
+
+  // Mettre à jour une tâche
+  updateTask(taskData, roomId = null) {
+    this.send({
+      type: 'task_update',
+      task_data: taskData,
+      room_id: roomId,
+    });
+  }
+
+  // Mettre à jour le Kanban
+  updateKanban(kanbanData, roomId = null) {
+    this.send({
+      type: 'kanban_update',
+      kanban_data: kanbanData,
+      room_id: roomId,
+    });
+  }
+
+  // Démarrer le monitoring PA
+  startPAMonitoring(targetUserId) {
+    this.send({
+      type: 'pa_monitoring',
+      target_user_id: targetUserId,
+    });
+  }
+
+  // Heartbeat
+  ping() {
+    this.send({
+      type: 'ping',
+      timestamp: Date.now(),
+    });
+  }
+
+  // Vérifier si connecté
+  isConnected() {
+    return this.socket && this.socket.readyState === WebSocket.OPEN;
+  }
+
+  // Obtenir le statut de connexion
+  getConnectionStatus() {
+    if (!this.socket) {
+      return 'disconnected';
+    }
+
+    switch (this.socket.readyState) {
+      case WebSocket.CONNECTING:
+        return 'connecting';
+      case WebSocket.OPEN:
+        return 'connected';
+      case WebSocket.CLOSING:
+        return 'closing';
+      case WebSocket.CLOSED:
+        return 'disconnected';
+      default:
+        return 'unknown';
     }
   }
 }
 
-// Instance singleton
+// Instance globale du service WebSocket
 const websocketService = new WebSocketService();
 
 export default websocketService; 

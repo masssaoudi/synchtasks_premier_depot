@@ -1,0 +1,56 @@
+// Navigation Utilisateur Lambda - SyncTasks (Local)
+digraph {
+	rankdir=TB size="12,16"
+	node [fontname=Arial fontsize=12 shape=box style="rounded,filled"]
+	Home [label="🏠 Accueil
+(/landing)" fillcolor="#E3F2FD" fontcolor="#2C3E50"]
+	Login [label="🔐 Connexion
+(/login)" fillcolor="#FFF3E0" fontcolor="#2C3E50"]
+	Segment [label="🧭 Sélection Segment
+(/segment-selection)" fillcolor="#FFF3E0" fontcolor="#2C3E50"]
+	Welcome [label="👋 Bienvenue
+(/welcome)" fillcolor="#E8F5E8" fontcolor="#2C3E50"]
+	Dashboard [label="📊 Dashboard
+(/dashboard)" fillcolor="#E8F5E8" fontcolor="#2C3E50"]
+	Tasks [label="📋 Tâches
+(/tasks)" fillcolor="#E8F5E8" fontcolor="#2C3E50"]
+	SegmentDash [label="📁 Segment Dashboard
+(/segment-dashboard)" fillcolor="#F3E5F5" fontcolor="#2C3E50"]
+	ParticuliersDash [label="👨‍👩‍👧‍👦 Particuliers Dashboard
+(/dashboard/particuliers)" fillcolor="#F3E5F5" fontcolor="#2C3E50"]
+	PA [label="🧑‍⚕️ Personne Aidant
+(/personne-aidant)" fillcolor="#FFEBEE" fontcolor="#2C3E50"]
+	PAInscription [label="📝 PA Inscription
+(/pa-inscription)" fillcolor="#FFEBEE" fontcolor="#2C3E50"]
+	PADash [label="🤝 PA Dashboard
+(/pa-dashboard)" fillcolor="#FFEBEE" fontcolor="#2C3E50"]
+	Home -> Login [label=Connexion fontcolor="#34495E" fontsize=10]
+	Home -> Segment [label="S'inscrire" fontcolor="#34495E" fontsize=10]
+	Login -> Segment [label="Connexion OK" fontcolor="#34495E" fontsize=10]
+	Segment -> Welcome [label="Redirection après choix" fontcolor="#34495E" fontsize=10]
+	Welcome -> Dashboard [label="" fontcolor="#34495E" fontsize=10]
+	Dashboard -> Tasks [label="" fontcolor="#34495E" fontsize=10]
+	Tasks -> SegmentDash [label="Modules IA" fontcolor="#34495E" fontsize=10]
+	SegmentDash -> ParticuliersDash [label="Profil particulier" fontcolor="#34495E" fontsize=10]
+	PA -> PAInscription [label=Inscription fontcolor="#34495E" fontsize=10]
+	PAInscription -> PADash [label="Accès autorisé" fontcolor="#34495E" fontsize=10]
+	subgraph cluster_0 {
+		color=lightgrey label="Parcours Utilisateur Standard" style=filled
+		node [style=filled]
+		Home
+		Login
+		Segment
+		Welcome
+		Dashboard
+		Tasks
+		SegmentDash
+		ParticuliersDash
+	}
+	subgraph cluster_1 {
+		color=lightgrey label="Parcours Personne Aidant" style=filled
+		node [style=filled]
+		PA
+		PAInscription
+		PADash
+	}
+}

@@ -2,10 +2,13 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from motor.motor_asyncio import AsyncIOMotorClient
 from datetime import datetime
 
-from models import UserCreate, UserResponse, Token, UserUpdate, APIResponse, LoginRequest
+from models import UserCreate, UserResponse, Token, UserUpdate, APIResponse, LoginRequest, OTPRequest, OTPVerify, UserRoleEnum
 from auth import login_user, register_user, get_current_active_user, get_user_by_id, get_user_by_username
 from database import get_database
 from delegation_routes import router as delegation_router
+import random
+import string
+from datetime import datetime, timedelta
 
 # ============================================================================
 # ROUTER AUTHENTIFICATION
@@ -77,6 +80,7 @@ async def login(
                     "username": token.user.username,
                     "email": token.user.email,
                     "full_name": token.user.full_name,
+                    "role": token.user.role,
                     "is_active": token.user.is_active,
                     "created_at": token.user.created_at.isoformat()
                 }
@@ -104,6 +108,7 @@ async def get_current_user_info(
                 "username": current_user.username,
                 "email": current_user.email,
                 "full_name": current_user.full_name,
+                "role": current_user.role,
                 "is_active": current_user.is_active,
                 "created_at": current_user.created_at.isoformat()
             }
@@ -170,6 +175,7 @@ async def update_current_user(
                     "username": updated_user.username,
                     "email": updated_user.email,
                     "full_name": updated_user.full_name,
+                    "role": updated_user.role,
                     "is_active": updated_user.is_active,
                     "created_at": updated_user.created_at.isoformat(),
                     "updated_at": updated_user.updated_at.isoformat()
@@ -183,6 +189,130 @@ async def update_current_user(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erreur lors de la mise à jour: {str(e)}"
         )
+
+# ============================================================================
+# ROUTES OTP ET PERSONNE AIDANTE
+# ============================================================================
+
+@router.post("/send-otp", response_model=APIResponse)
+async def send_otp(
+    otp_request: OTPRequest,
+    db: AsyncIOMotorClient = Depends(get_database)
+):
+    """Envoie un code OTP par SMS (simulé)"""
+    try:
+        # Générer un code OTP à 6 chiffres
+        code = ''.join(random.choices(string.digits, k=6))
+        
+        # Supprimer les anciens codes pour ce téléphone
+        await db.synchtasks_db.otp_codes.delete_many({"phone": otp_request.phone})
+        
+        # Insérer le nouveau code avec expiration (5 minutes)
+        otp_data = {
+            "phone": otp_request.phone,
+            "code": code,
+            "expires_at": datetime.utcnow() + timedelta(minutes=5),
+            "used": False
+        }
+        await db.synchtasks_db.otp_codes.insert_one(otp_data)
+        
+        # Simulation d'envoi SMS (en production, utiliser un service SMS)
+        print(f"✅ Code OTP envoyé au {otp_request.phone}: {code}")
+        
+        return APIResponse(
+            success=True,
+            message="Code OTP envoyé avec succès",
+            data={"phone": otp_request.phone}
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erreur lors de l'envoi de l'OTP: {str(e)}"
+        )
+
+@router.post("/verify-otp", response_model=APIResponse)
+async def verify_otp(
+    otp_verify: OTPVerify,
+    db: AsyncIOMotorClient = Depends(get_database)
+):
+    """Vérifie un code OTP"""
+    try:
+        # Récupérer le code OTP
+        otp_data = await db.synchtasks_db.otp_codes.find_one({
+            "phone": otp_verify.phone,
+            "code": otp_verify.code,
+            "used": False
+        })
+        
+        if not otp_data:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Code OTP invalide"
+            )
+        
+        # Vérifier l'expiration
+        if datetime.utcnow() > otp_data["expires_at"]:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Code OTP expiré"
+            )
+        
+        # Marquer le code comme utilisé
+        await db.synchtasks_db.otp_codes.update_one(
+            {"_id": otp_data["_id"]},
+            {"$set": {"used": True}}
+        )
+        
+        return APIResponse(
+            success=True,
+            message="Code OTP validé avec succès",
+            data={"phone": otp_verify.phone}
+        )
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erreur lors de la vérification de l'OTP: {str(e)}"
+        )
+
+@router.post("/register-pa", response_model=APIResponse)
+async def register_personne_aidante(
+    user: UserCreate,
+    db: AsyncIOMotorClient = Depends(get_database)
+):
+    """Enregistre une nouvelle personne aidante"""
+    try:
+        # Forcer le rôle PA
+        user.role = UserRoleEnum.pa
+        
+        new_user = await register_user(db, user)
+        return APIResponse(
+            success=True,
+            message="Personne aidante créée avec succès",
+            data={
+                "user": {
+                    "id": new_user.id,
+                    "username": new_user.username,
+                    "email": new_user.email,
+                    "full_name": new_user.full_name,
+                    "role": new_user.role,
+                    "is_active": new_user.is_active,
+                    "created_at": new_user.created_at.isoformat()
+                }
+            }
+        )
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erreur lors de la création de la personne aidante: {str(e)}"
+        )
+
+# ============================================================================
+# ROUTES UTILISATEURS
+# ============================================================================
 
 @router.get("/users", response_model=APIResponse)
 async def get_users(

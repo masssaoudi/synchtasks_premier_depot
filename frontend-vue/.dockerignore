@@ -1,7 +1,7 @@
 # Fichiers et dossiers à ignorer pour le build Docker du frontend
 
 # Node modules (sera installé dans le conteneur)
-node_modules/
+# node_modules/  # Commenté pour utiliser les node_modules locaux
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

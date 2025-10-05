@@ -1,0 +1,47 @@
+{
+  "tests": [
+    {
+      "name": "Application accessible",
+      "status": "FAIL",
+      "details": "Message: unknown error: net::ERR_CONNECTION_REFUSED\n  (Session info: chrome=138.0.7204.184)\nStacktrace:\n\tGetHandleVerifier [0x0x7ff745d6e415+77285]\n\tGetHandleVerifier [0x0x7ff745d6e470+77376]\n\t(No symbol) [0x0x7ff745b39a6a]\n\t(No symbol) [0x0x7ff745b36823]\n\t(No symbol) [0x0x7ff745b27659]\n\t(No symbol) [0x0x7ff745b29401]\n\t(No symbol) [0x0x7ff745b27976]\n\t(No symbol) [0x0x7ff745b273d6]\n\t(No symbol) [0x0x7ff745b2709a]\n\t(No symbol) [0x0x7ff745b24c68]\n\t(No symbol) [0x0x7ff745b254ec]\n\t(No symbol) [0x0x7ff745b3da1a]\n\t(No symbol) [0x0x7ff745be167e]\n\t(No symbol) [0x0x7ff745bb860a]\n\t(No symbol) [0x0x7ff745be087f]\n\t(No symbol) [0x0x7ff745bb83e3]\n\t(No symbol) [0x0x7ff745b81521]\n\t(No symbol) [0x0x7ff745b822b3]\n\tGetHandleVerifier [0x0x7ff746051efd+3107021]\n\tGetHandleVerifier [0x0x7ff74604c29d+3083373]\n\tGetHandleVerifier [0x0x7ff74606bedd+3213485]\n\tGetHandleVerifier [0x0x7ff745d8884e+184862]\n\tGetHandleVerifier [0x0x7ff745d9055f+216879]\n\tGetHandleVerifier [0x0x7ff745d77084+113236]\n\tGetHandleVerifier [0x0x7ff745d77239+113673]\n\tGetHandleVerifier [0x0x7ff745d5e298+11368]\n\tBaseThreadInitThunk [0x0x7ff86df0e8d7+23]\n\tRtlUserThreadStart [0x0x7ff86f0914fc+44]\n"
+    },
+    {
+      "name": "Bouton thème présent",
+      "status": "FAIL",
+      "details": "Bouton .nav-btn-theme non trouvé"
+    },
+    {
+      "name": "État initial thème",
+      "status": "FAIL",
+      "details": "Message: <unknown>: Failed to read the 'localStorage' property from 'Window': Access is denied for this document.\n  (Session info: chrome=138.0.7204.184)\nStacktrace:\n\tGetHandleVerifier [0x0x7ff745d6e415+77285]\n\tGetHandleVerifier [0x0x7ff745d6e470+77376]\n\t(No symbol) [0x0x7ff745b39a6a]\n\t(No symbol) [0x0x7ff745b41419]\n\t(No symbol) [0x0x7ff745b44811]\n\t(No symbol) [0x0x7ff745be1c0b]\n\t(No symbol) [0x0x7ff745bb860a]\n\t(No symbol) [0x0x7ff745be087f]\n\t(No symbol) [0x0x7ff745bb83e3]\n\t(No symbol) [0x0x7ff745b81521]\n\t(No symbol) [0x0x7ff745b822b3]\n\tGetHandleVerifier [0x0x7ff746051efd+3107021]\n\tGetHandleVerifier [0x0x7ff74604c29d+3083373]\n\tGetHandleVerifier [0x0x7ff74606bedd+3213485]\n\tGetHandleVerifier [0x0x7ff745d8884e+184862]\n\tGetHandleVerifier [0x0x7ff745d9055f+216879]\n\tGetHandleVerifier [0x0x7ff745d77084+113236]\n\tGetHandleVerifier [0x0x7ff745d77239+113673]\n\tGetHandleVerifier [0x0x7ff745d5e298+11368]\n\tBaseThreadInitThunk [0x0x7ff86df0e8d7+23]\n\tRtlUserThreadStart [0x0x7ff86f0914fc+44]\n"
+    },
+    {
+      "name": "Basculement thème",
+      "status": "FAIL",
+      "details": "Message: <unknown>: Failed to read the 'localStorage' property from 'Window': Access is denied for this document.\n  (Session info: chrome=138.0.7204.184)\nStacktrace:\n\tGetHandleVerifier [0x0x7ff745d6e415+77285]\n\tGetHandleVerifier [0x0x7ff745d6e470+77376]\n\t(No symbol) [0x0x7ff745b39a6a]\n\t(No symbol) [0x0x7ff745b41419]\n\t(No symbol) [0x0x7ff745b44811]\n\t(No symbol) [0x0x7ff745be1c0b]\n\t(No symbol) [0x0x7ff745bb860a]\n\t(No symbol) [0x0x7ff745be087f]\n\t(No symbol) [0x0x7ff745bb83e3]\n\t(No symbol) [0x0x7ff745b81521]\n\t(No symbol) [0x0x7ff745b822b3]\n\tGetHandleVerifier [0x0x7ff746051efd+3107021]\n\tGetHandleVerifier [0x0x7ff74604c29d+3083373]\n\tGetHandleVerifier [0x0x7ff74606bedd+3213485]\n\tGetHandleVerifier [0x0x7ff745d8884e+184862]\n\tGetHandleVerifier [0x0x7ff745d9055f+216879]\n\tGetHandleVerifier [0x0x7ff745d77084+113236]\n\tGetHandleVerifier [0x0x7ff745d77239+113673]\n\tGetHandleVerifier [0x0x7ff745d5e298+11368]\n\tBaseThreadInitThunk [0x0x7ff86df0e8d7+23]\n\tRtlUserThreadStart [0x0x7ff86f0914fc+44]\n"
+    },
+    {
+      "name": "Variables CSS",
+      "status": "PASS",
+      "details": {
+        "backgroundColor": "rgba(0, 0, 0, 0)",
+        "bgPrimary": "",
+        "borderColor": "",
+        "color": "rgb(0, 0, 0)",
+        "textPrimary": ""
+      }
+    },
+    {
+      "name": "Erreurs console",
+      "status": "PASS",
+      "details": "Aucune erreur"
+    }
+  ],
+  "errors": [],
+  "summary": {
+    "total": 6,
+    "passed": 2,
+    "failed": 4,
+    "success_rate": 33.33333333333333
+  }
+}
